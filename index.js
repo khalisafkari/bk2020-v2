@@ -1,5 +1,6 @@
 import {Navigation} from 'react-native-navigation';
 import Ionic from 'react-native-vector-icons/Ionicons'
+import SplashCheker from "./src/SplashCheker";
 
 //Westmanga
 import Home from "./src/home";
@@ -12,10 +13,10 @@ import Details from "./src/details";
 //End Westmanga
 
 //Test
-import AdBanner from "./src/ui/AdBanner";
+// import AdBanner from "./src/ui/AdBanner";
 
 
-
+Navigation.registerComponent('com.splash',() => SplashCheker);
 Navigation.registerComponent('com.home',() => Home);
 Navigation.registerComponent('com.list',() => List);
 Navigation.registerComponent('com.postid',() => Postid);
@@ -25,7 +26,7 @@ Navigation.registerComponent('com.search',() => Search);
 Navigation.registerComponent('com.details',() => Details);
 
 //Tester
-Navigation.registerComponent('com.ad',() => AdBanner);
+// Navigation.registerComponent('com.ad',() => AdBanner);
 
 // Navigation.events().registerAppLaunchedListener(async () => {
 //     Navigation.setRoot({
@@ -42,37 +43,13 @@ Navigation.registerComponent('com.ad',() => AdBanner);
 // })
 
 Navigation.events().registerAppLaunchedListener(async () => {
-     Navigation.setRoot({
-         root:{
-             bottomTabs:{
-                 children:[
-                     {
-                         stack:{
-                             children:[{component:{name:'com.home'}}],
-                             options: {
-                                 bottomTab: {
-                                     icon: await Ionic.getImageSource('home',20,'#fff')
-                                 },
-                             }
-                         }
-                     },
-                     {
-                         stack:{
-                             children: [{component: {name:'com.history'}}],
-                             options:{
-                                 bottomTab:{
-                                    icon:await Ionic.getImageSource('list',20,'#fff')
-                                 },
-                                 topBar:{
-                                     visible:false
-                                 }
-                             }
-                         }
-                     }
-                 ]
-             }
-         }
-     })
+        Navigation.setRoot({
+            root:{
+                component:{
+                    name:'com.splash'
+                }
+            }
+        })
 })
 
 // Navigation.events().registerAppLaunchedListener(async () => {
