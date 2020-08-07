@@ -57,7 +57,7 @@ const onView = (props:any) => {
                 draft.next = result.next;
                 draft.prev = result.prev;
             })
-        }).catch((error) => {
+        }).catch(() => {
 
         })
         return () => {}
