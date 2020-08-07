@@ -23,7 +23,7 @@ const AdBanner = (props:props) => {
 
     return (
         <AppodealBanner
-            adSize={'tablet'}
+            adSize={'phone'}
             style={props.style}
             onAdLoaded={props.onAdLoaded}
             onAdClicked={props.onAdClicked}

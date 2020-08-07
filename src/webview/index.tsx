@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     },
     ad:{
         position:'absolute',
-        bottom:65,
+        bottom:45,
         height:50,
         width:'100%',
         backgroundColor:'transparent'

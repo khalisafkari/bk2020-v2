@@ -1,8 +1,9 @@
 import {
-    Appodeal, AppodealAdType,
+    Appodeal, AppodealAdType, AppodealBannerEvent,
     AppodealConsentRegulation,
     AppodealConsentStatus, AppodealInterstitialEvent, AppodealLogLevel
 } from "react-native-appodeal";
+import App from "../../App";
 
 const adTypes = AppodealAdType.INTERSTITIAL | AppodealAdType.REWARDED_VIDEO | AppodealAdType.BANNER | AppodealAdType.MREC;
 
@@ -31,7 +32,7 @@ const initialize = (
     callback?:(consent: AppodealConsentStatus, regulation: AppodealConsentRegulation) => void
 ) => {
     Appodeal.setAge(25);
-    Appodeal.setTesting(false);
+    Appodeal.setTesting(testing);
     Appodeal.disableLocationPermissionCheck();
     Appodeal.setChildDirectedTreatment(false);
     Appodeal.setLogLevel(AppodealLogLevel.DEBUG);
@@ -42,6 +43,9 @@ const initialize = (
 }
 
 const listener = () => {
+    Appodeal.addEventListener(AppodealBannerEvent.LOADED,() => {
+        console.log('loaded')
+    })
     Appodeal.addEventListener(AppodealInterstitialEvent.LOADED, (event: any) =>
         console.log("Interstitial loaded. Precache: ", event.isPrecache)
     )

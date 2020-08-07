@@ -67,7 +67,13 @@ const SplashCheker = () => {
                     })
                 })
             } else {
-
+                Navigation.setRoot({
+                    root:{
+                        component:{
+                            name:'com.pixabay'
+                        }
+                    }
+                })
             }
         }).catch(() => {})
     },[])

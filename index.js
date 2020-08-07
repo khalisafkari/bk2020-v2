@@ -1,6 +1,7 @@
 import {Navigation} from 'react-native-navigation';
 import Ionic from 'react-native-vector-icons/Ionicons'
 import SplashCheker from "./src/SplashCheker";
+import Pixabay from "./src/pixabay";
 
 //Westmanga
 import Home from "./src/home";
@@ -17,6 +18,7 @@ import Details from "./src/details";
 
 
 Navigation.registerComponent('com.splash',() => SplashCheker);
+Navigation.registerComponent('com.pixabay',() => Pixabay);
 Navigation.registerComponent('com.home',() => Home);
 Navigation.registerComponent('com.list',() => List);
 Navigation.registerComponent('com.postid',() => Postid);
