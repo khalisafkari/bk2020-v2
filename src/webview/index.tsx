@@ -1,0 +1,250 @@
+import React, {useCallback, useLayoutEffect, useRef} from "react";
+import {
+    Animated,
+    NativeScrollEvent,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    useWindowDimensions
+} from "react-native";
+import {WebView as Web, WebViewMessageEvent} from "react-native-webview";
+import {useImmer} from "use-immer";
+import {_getImageContent} from "../../utils/api";
+import html from "./html";
+import Icon from 'react-native-vector-icons/Ionicons'
+import {Navigation} from "react-native-navigation";
+import AdBanner from "../ui/AdBanner";
+import {_setHistoryId, _updateHistoryId} from "../../utils/database/HistoryId";
+
+const View = Animated.View;
+const WebView = Animated.createAnimatedComponent(Web);
+
+interface state {
+    id:string
+    size:number
+    html:string
+    title:string
+    next?:string | null
+    prev?:string | null
+}
+
+interface scrollEvent {
+    nativeEvent:NativeScrollEvent
+}
+
+const onView = (props:any) => {
+
+    const webviewRef = useRef<any | null>(null);
+    const { height } = useWindowDimensions();
+    const value = useRef<Animated.Value>(new Animated.Value(0)).current;
+
+    const [state,setState] = useImmer<state>({
+        id:'',
+        size:0,
+        html:'',
+        title:'',
+        next:null,
+        prev:null
+    })
+
+    const onLoaded = useCallback(() => {
+        _getImageContent(props.id).then((result) => {
+            setState(draft => {
+                draft.id = props.id;
+                draft.html = html(result.content);
+                draft.title = 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-');
+                draft.next = result.next;
+                draft.prev = result.prev;
+            })
+        }).catch((error) => {
+
+        })
+        return () => {}
+    },[])
+
+    useLayoutEffect(onLoaded,[])
+
+
+    // @ts-ignore
+    const onScrollEvent = useCallback(({nativeEvent}:scrollEvent) => {
+        const totalHeight:number = nativeEvent.contentSize.height - height;
+        const scrollHeight:number = nativeEvent.contentOffset.y;
+        if (scrollHeight < 100) {
+            Animated.timing(value, {
+                useNativeDriver: true,
+                duration: 1000,
+                toValue: 0
+            }).start();
+        } else if (totalHeight.toFixed() === scrollHeight.toFixed()) {
+            Animated.timing(value,{
+                useNativeDriver:true,
+                toValue:0,
+                duration:1000
+            }).start()
+        } else {
+            Animated.timing(value,{
+                useNativeDriver:true,
+                duration:1000,
+                toValue:100
+            }).start();
+        }
+    },[])
+
+    const webViewMessage = useCallback((event:WebViewMessageEvent) => {
+        if (event.nativeEvent.data === "up") {
+            Animated.timing(value,{
+                duration:1000,
+                toValue:0,
+                useNativeDriver:true
+            }).start();
+        }
+    },[])
+
+    const transformBottom = [{
+        translateY:value.interpolate({
+            inputRange:[0,100],
+            outputRange:[0,100],
+            extrapolate:'clamp'
+        })
+    }]
+
+    const transformTop = [{
+        translateY:value.interpolate({
+            inputRange:[0,100],
+            outputRange:[0,-100],
+            extrapolate:'clamp'
+        })
+    }]
+
+    const onPressNext = useCallback(() => {
+        _getImageContent(state.next).then((result) => {
+            setState(draft => {
+                draft.id = state.next;
+                draft.html = html(result.content);
+                draft.title = 'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-');
+                draft.next = result.next;
+                draft.prev = result.prev;
+            })
+            webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
+            _setHistoryId(state.next);
+            _updateHistoryId(
+                props.root,
+                state.next,
+                'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-'));
+        }).catch((error) => {
+
+        })
+    },[state.next])
+
+    const onPressPrev = useCallback(() => {
+        _getImageContent(state.prev).then((result) => {
+            setState(draft => {
+                draft.id = state.prev;
+                draft.html = html(result.content);
+                draft.title = 'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-');
+                draft.next = result.next;
+                draft.prev = result.prev;
+            })
+            webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
+            _setHistoryId(state.prev);
+            _updateHistoryId(
+                props.root,
+                state.prev,
+                'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-'));
+
+        }).catch((error) => {
+
+        })
+    },[state.prev])
+
+    return (
+        <SafeAreaView style={{ flex:1 }}>
+        <View style={{ height }}>
+            <WebView
+                ref={webviewRef}
+                source={{html:state.html}}
+                automaticallyAdjustContentInsets={false}
+                startInLoadingState={true}
+                onScroll={onScrollEvent}
+                showsVerticalScrollIndicator={false}
+                onMessage={webViewMessage}
+            />
+            <View style={[styles.bottom,{transform:transformBottom }]}>
+                <Pressable onPress={onPressPrev} disabled={state.prev ? false : true} style={[styles.btn,{ justifyContent:'flex-start' }]}>
+                    <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
+                    <Text style={styles.label}>Sebelumnya</Text>
+                </Pressable>
+                <Pressable style={{flex:1,alignItems:'center',justifyContent:'center'}} >
+                    <Icon name={'chatbox-ellipses-outline'} color={'white'} size={25} />
+                </Pressable>
+                <Pressable onPress={onPressNext} disabled={state.next ? false : true} style={[styles.btn,{ justifyContent:'flex-end' }]}>
+                    <Text style={styles.label}>Selanjutnya</Text>
+                    <Icon name={'ios-arrow-forward-sharp'} color={'white'} size={20} />
+                </Pressable>
+            </View>
+
+            <View style={[styles.ad,{
+                transform:[{
+                    translateY:value.interpolate({
+                        inputRange:[0,100],
+                        outputRange:[0,45],
+                    })
+                }]
+            }]}>
+                <AdBanner status={true}  />
+            </View>
+            <View style={[styles.top,{transform:transformTop}]}>
+                <Pressable style={{ flex:1,flexDirection:'row',alignItems:'center' }} onPress={() => Navigation.pop(props.componentId)}>
+                    <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
+                    <Text numberOfLines={1} style={{color:'white',marginHorizontal:8}}>{state.title}</Text>
+                </Pressable>
+            </View>
+        </View>
+        </SafeAreaView>
+    )
+}
+
+const styles = StyleSheet.create({
+    top:{
+        position:'absolute',
+        top:0,
+        width:'100%',
+        height:50,
+        backgroundColor:'black',
+        flexDirection:'row',
+        justifyContent:'space-between',
+        alignItems:'center',
+        paddingHorizontal:8
+    },
+    bottom:{
+        position:'absolute',
+        bottom:0,
+        width:'100%',
+        height:45,
+        backgroundColor:'black',
+        flexDirection:'row',
+        justifyContent:'space-between',
+        alignItems:'center',
+        paddingHorizontal:5,
+    },
+    btn:{
+        flex:1,
+        flexDirection:'row',
+        alignItems:'center'
+    },
+    label:{
+        fontSize:10,
+        color:'white',
+        textTransform:'uppercase'
+    },
+    ad:{
+        position:'absolute',
+        bottom:65,
+        height:50,
+        width:'100%',
+        backgroundColor:'transparent'
+    }
+})
+
+export default onView;
