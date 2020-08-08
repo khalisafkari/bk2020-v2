@@ -11,6 +11,7 @@ import onView from "./src/webview";
 import History from "./src/history";
 import Search from "./src/search";
 import Details from "./src/details";
+import Bookmark from "./src/bookmark";
 //End Westmanga
 
 //Test
@@ -26,6 +27,7 @@ Navigation.registerComponent('com.webview',() => onView);
 Navigation.registerComponent('com.history',() => History);
 Navigation.registerComponent('com.search',() => Search);
 Navigation.registerComponent('com.details',() => Details);
+Navigation.registerComponent('com.bookmark',() => Bookmark);
 
 //Tester
 // Navigation.registerComponent('com.ad',() => AdBanner);

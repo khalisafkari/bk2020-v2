@@ -1,7 +1,7 @@
 import axios from "axios";
 import cheerio from "cheerio";
 
-const manga = axios.create({ baseURL:'https://westmanga.info',headers:{ Referer:'com.bk2020' },timeout:1000});
+const manga = axios.create({ baseURL:'https://westmanga.info',headers:{ Referer:'com.bk2020.production' },timeout:1000});
 
 export interface _getHome {
     id:string

@@ -32,7 +32,8 @@ const SplashCheker = () => {
             if (results.data.country === "Indonesia") {
                 Promise.all([
                     Ionic.getImageSource('home',20,'#fff'),
-                    Ionic.getImageSource('list',20,'#fff')
+                    Ionic.getImageSource('list',20,'#fff'),
+                    Ionic.getImageSource('book',20,'#fff')
                 ]).then((icon) => {
                     Navigation.setRoot({
                         root:{
@@ -58,6 +59,16 @@ const SplashCheker = () => {
                                                 topBar:{
                                                     visible:false
                                                 }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        stack:{
+                                            children: [{component: {name:'com.bookmark'}}],
+                                            options: {
+                                                bottomTab: {
+                                                    icon: icon[2]
+                                                },
                                             }
                                         }
                                     }

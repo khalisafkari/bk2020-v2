@@ -5,6 +5,7 @@ import {_getGenre, _getGenreSource, _getList, _getPaginado, _getSearch} from "..
 import {useImmer} from "use-immer";
 import CardSearch from "../ui/CardSearch";
 import Loading from "../ui/Loading";
+import Error from "../ui/Error";
 
 interface states {
     data:_getSearch[]
@@ -15,6 +16,7 @@ interface states {
     current:number
     total:number
     currentGenre?:string | null
+    error:boolean
 }
 
 const View = Animated.View;
@@ -29,7 +31,8 @@ const List = (props:any) => {
         genre:[],
         current:1,
         total:0,
-        currentGenre:null
+        currentGenre:null,
+        error:false
     });
     const drawerRef = useRef<any>();
     const refEvent = useRef<any>();
@@ -41,7 +44,11 @@ const List = (props:any) => {
             setState(draft => {
                 draft.data = res;
             })
-        }).catch(() => {});
+        }).catch(() => {
+            setState(draft => {
+                draft.error = true;
+            })
+        });
         _getPaginado().then((res) => {
             setState(draft => {
                 draft.total = res;
@@ -51,7 +58,7 @@ const List = (props:any) => {
            setState(draft => {
                draft.genre = res
            })
-        })
+        }).catch(() => {})
     },[])
 
     const onCallView = useCallback(() => {
@@ -177,6 +184,12 @@ const List = (props:any) => {
         )
     },[state])
 
+
+    if (state.error) {
+        return  (
+            <Error text={'server down'} />
+        )
+    }
 
     return (
         <DrawerLayoutAndroid

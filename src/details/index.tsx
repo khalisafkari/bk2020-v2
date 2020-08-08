@@ -1,9 +1,10 @@
 import React, {useCallback, useEffect, useRef} from "react";
-import {StyleSheet, Animated, Text} from "react-native";
+import {StyleSheet, Animated, Text, Pressable} from "react-native";
 import FastImage from "react-native-fast-image";
 import {_getDetails} from "../../utils/api";
 import {useImmer} from "use-immer";
 import Icon from 'react-native-vector-icons/Ionicons'
+import {_delBookmark, _getBookmarkId, _setBookmark} from "../../utils/database/sqlite";
 
 const View = Animated.View;
 const ScrollView = Animated.ScrollView;
@@ -14,7 +15,7 @@ interface propsState {
     id:string
     image:string
     title:string
-}
+};
 
 const Details = (props:propsState) => {
 
@@ -29,8 +30,8 @@ const Details = (props:propsState) => {
         sinopsis:'',
         status:'',
         total:''
-    })
-
+    });
+    const [book,setBook] = useImmer<boolean>(false);
     const onCall = useCallback(() => {
         _getDetails(props.id).then((results) => {
            setState(draft => {
@@ -47,9 +48,39 @@ const Details = (props:propsState) => {
         }).catch(() => {
 
         })
-    },[state.genre])
+    },[state.genre]);
+    const onCheckBookmark = useCallback(() => {
+        _getBookmarkId(props.id).then((results) => {
+            if (results !== undefined) {
+                setBook(() => true);
+            } else {
+                setBook(() => false);
+            }
+        }).catch((e) => {
+            setBook(() => false);
+        })
+    },[book]);
+    useEffect(onCall,[]);
+    useEffect(onCheckBookmark,[]);
 
-    useEffect(onCall,[])
+    const onSetBookmark = useCallback(() => {
+        _setBookmark(props.id,props.title,props.image).then((results) => {
+            if (results.insertId > 0) {
+                setBook(() => true);
+            }
+        }).catch((error) => {
+            setBook(draft => draft);
+        })
+    },[]);
+    const onDelBookmark = useCallback(() => {
+        _delBookmark(props.id).then((results) => {
+            if (results.insertId === undefined) {
+                setBook(() => false);
+            }
+        }).catch((error) => {
+            setBook(draft => draft);
+        })
+    },[]);
 
     return (
         <View style={{flex:1}}>
@@ -107,10 +138,10 @@ const Details = (props:propsState) => {
                             <Text style={{color:'white',fontSize:14,fontWeight:'bold',marginHorizontal:5}}>{state.rating}</Text>
                         </View>
                     ) : null}
-                    <View style={styles.footerStar}>
-                        <Icon name={`book-outline`} size={15} color={'#fff'} />
-                        <Text  style={{color:'white',fontSize:14,fontWeight:'bold',marginHorizontal:5}}>save</Text>
-                    </View>
+                    <Pressable onPress={book ? onDelBookmark : onSetBookmark} style={styles.footerStar}>
+                        <Icon name={`book-outline`} size={15} color={`${book ? 'red' : '#fff'}`} />
+                        <Text  style={{color:`${book ? 'red' : '#fff'}`,fontSize:14,fontWeight:'bold',marginHorizontal:5}}>save</Text>
+                    </Pressable>
                 </View>
             </View>
         </View>
