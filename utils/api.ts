@@ -90,7 +90,8 @@ export const _getImageContent = async (id:string) => {
     try {
         const url = await manga.get(id)
         const $ = cheerio.load(url.data);
-        const list = $('#readerarea p a').map((index,element) => `<img alt="" src="${$(element).attr('href')}"/>` ).get();
+        const list = $('#readerarea img').map((index,elemeent) => `<img alt="${index}" src="${$(elemeent).attr('src')}"/>`).get();
+        //const list = $('#readerarea p a').map((index,element) => `<img alt="" src="${$(element).attr('href')}"/>` ).get();
         const prev = $('.nextprev a[rel="prev"]').eq(0).attr('href')
         const next = $('.nextprev a[rel="next"]').eq(1).attr('href')
         return {

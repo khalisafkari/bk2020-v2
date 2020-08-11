@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     warning:{
         position:'absolute',
         top:0,
-        backgroundColor:'rgba(0,0,0,.9)',
+        backgroundColor:'red',
         padding:5/2,
         flexDirection:'row',
         alignItems:'center'

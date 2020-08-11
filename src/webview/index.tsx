@@ -56,7 +56,11 @@ const onView = (props:any) => {
                 draft.title = 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-');
                 draft.next = result.next;
                 draft.prev = result.prev;
-            })
+            });
+            _updateHistoryId(
+                props.root,
+                props.id,
+                'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-'));
         }).catch(() => {
 
         })
