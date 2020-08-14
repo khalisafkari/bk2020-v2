@@ -7,7 +7,7 @@ import Loading from "../ui/Loading";
 import Error from "../ui/Error";
 import {_addHistory} from "../../utils/database/HistoryId";
 import {Navigation} from "react-native-navigation";
-import Icon from 'react-native-vector-icons/Ionicons'
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface props extends _getHome {
     componentId?:string
@@ -87,8 +87,8 @@ const postid  = (props:props) => {
         }
     },[])
 
-    useEffect(onCallBack,[])
-    useEffect(mergeCallBack,[])
+    useEffect(onCallBack,[]);
+    useEffect(mergeCallBack,[]);
 
     const addHistroy = useCallback(() => {
         _addHistory({
@@ -112,7 +112,7 @@ const postid  = (props:props) => {
 
     return mutation.loading ? (<Loading/>) : (
         <Animated.View style={{flex:1}}>
-            <Animated.ScrollView scrollEventThrottle={[0.1]}>
+            <Animated.ScrollView scrollEventThrottle={0.1}>
                 {mutation.data.map((item,index) => {
                     return renderContent({ item,index });
                 })}

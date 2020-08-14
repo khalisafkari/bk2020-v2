@@ -1,5 +1,5 @@
 import {Navigation} from 'react-native-navigation';
-import Ionic from 'react-native-vector-icons/Ionicons'
+import analytics from '@react-native-firebase/analytics';
 import SplashCheker from "./src/SplashCheker";
 import Pixabay from "./src/pixabay";
 
@@ -54,6 +54,15 @@ Navigation.events().registerAppLaunchedListener(async () => {
                 }
             }
         })
+});
+
+Navigation.events().registerComponentDidAppearListener(({componentType,passProps,componentName}) => {
+    if (componentType === "Component") {
+        analytics().setCurrentScreen(componentName,componentType);
+        if (Object.keys(passProps).length > 0 && componentName === "com.postid") {
+           analytics().logEvent('manga',passProps)
+        }
+    }
 })
 
 // Navigation.events().registerAppLaunchedListener(async () => {

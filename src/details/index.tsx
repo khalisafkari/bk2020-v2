@@ -6,6 +6,7 @@ import {useImmer} from "use-immer";
 import Icon from 'react-native-vector-icons/Ionicons'
 import {_delBookmark, _getBookmarkId, _setBookmark} from "../../utils/database/sqlite";
 
+
 const View = Animated.View;
 const ScrollView = Animated.ScrollView;
 const Image = Animated.createAnimatedComponent(FastImage);
@@ -15,7 +16,7 @@ interface propsState {
     id:string
     image:string
     title:string
-};
+}
 
 const Details = (props:propsState) => {
 
@@ -56,7 +57,7 @@ const Details = (props:propsState) => {
             } else {
                 setBook(() => false);
             }
-        }).catch((e) => {
+        }).catch(() => {
             setBook(() => false);
         })
     },[book]);
@@ -68,7 +69,7 @@ const Details = (props:propsState) => {
             if (results.insertId > 0) {
                 setBook(() => true);
             }
-        }).catch((error) => {
+        }).catch(() => {
             setBook(draft => draft);
         })
     },[]);
@@ -77,7 +78,7 @@ const Details = (props:propsState) => {
             if (results.insertId === undefined) {
                 setBook(() => false);
             }
-        }).catch((error) => {
+        }).catch(() => {
             setBook(draft => draft);
         })
     },[]);
@@ -91,7 +92,7 @@ const Details = (props:propsState) => {
                     }
                 }
             }],{useNativeDriver:true})} scrollEventThrottle={0.1} contentContainerStyle={{paddingBottom:70}}>
-                <View style={{marginVertical:8,flexDirection:'row'}}>
+                <View style={{marginVertical:8,marginHorizontal:5,flexDirection:'row'}}>
                     <Image source={{uri:props.image}} style={[styles.image]} />
                     <View style={{marginHorizontal:5,flex:1}}>
                         <Text numberOfLines={2} style={[styles.title,styles.line]}>{props.title}</Text>
@@ -112,12 +113,12 @@ const Details = (props:propsState) => {
                         ) : null}
                     </View>
                 </View>
-                <View style={{flexDirection:'row',flexWrap:'wrap',alignItems:'center'}}>
+                <View style={{flexDirection:'row',flexWrap:'wrap',alignItems:'center',margin:5}}>
                     {state.genre.map((item,index) => {
                         return <Text key={index} style={[styles.japan,styles.genreItem]}>{item.title}</Text>
                     })}
                 </View>
-                <View>
+                <View style={{margin:5}}>
                     <Text style={{color:'white',fontSize:16,fontWeight:'bold'}}>Sinopsis</Text>
                     <Text style={{color:'white',fontSize:11}}>{state.sinopsis}</Text>
                 </View>

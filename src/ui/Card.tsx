@@ -32,7 +32,7 @@ const Card = (props:props) => {
         })
     }
 
-    const image = 'https://cdn.statically.io/img/' + props.image.replace(/^(http|https):\/\//gm,'') + '?h=140&f=auto'
+    const image = 'https://cdn.statically.io/img/' + props.image.replace(/^(http|https):\/\//gm,'') + '?h=150&f=auto'
     return (
             <Pressable style={styles.container} onPress={push}>
                 <FastImage source={{uri:image,priority:FastImage.priority.normal}} style={styles.image} />
