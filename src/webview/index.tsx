@@ -14,11 +14,12 @@ import {_getImageContent} from "../../utils/api";
 import html from "./html";
 import Icon from 'react-native-vector-icons/Ionicons'
 import {Navigation} from "react-native-navigation";
-import AdBanner from "../ui/AdBanner";
+import { BannerAd as AdLayout } from 'react-native-smaato-ad';
 import {_setHistoryId, _updateHistoryId} from "../../utils/database/HistoryId";
 
 const View = Animated.View;
 const WebView = Animated.createAnimatedComponent(Web);
+const BannerAd = Animated.createAnimatedComponent(AdLayout);
 
 interface state {
     id:string
@@ -162,14 +163,16 @@ const onView = (props:any) => {
         })
     },[state.prev])
 
+
     return (
-        <SafeAreaView style={{ flex:1 }}>
-        <View style={{ height }}>
+        <SafeAreaView style={{flex:1}}>
+        <View style={{ height,width:'100%' }}>
             <WebView
                 ref={webviewRef}
                 source={{html:state.html}}
                 automaticallyAdjustContentInsets={false}
                 startInLoadingState={true}
+                // @ts-ignore
                 onScroll={onScrollEvent}
                 showsVerticalScrollIndicator={false}
                 onMessage={webViewMessage}
@@ -187,16 +190,13 @@ const onView = (props:any) => {
                     <Icon name={'ios-arrow-forward-sharp'} color={'white'} size={20} />
                 </Pressable>
             </View>
-
             <View style={[styles.ad,{
-                transform:[{
-                    translateY:value.interpolate({
-                        inputRange:[0,100],
-                        outputRange:[0,45],
-                    })
-                }]
+                transform:[{translateY:value.interpolate({inputRange:[0,100], outputRange:[0,45], extrapolate:'clamp'})}]
             }]}>
-                <AdBanner status={true}  />
+                <BannerAd style={{ height:50,width:320 }}
+                          adID={'130897362'}
+                          bannerAdSize={'XX_LARGE_320x50'}
+                          adReload={'VERY_SHORT'}/>
             </View>
             <View style={[styles.top,{transform:transformTop}]}>
                 <Pressable style={{ flex:1,flexDirection:'row',alignItems:'center' }} onPress={() => Navigation.pop(props.componentId)}>
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     },
     bottom:{
         position:'absolute',
-        bottom:0,
+        bottom:45 / 2,
         width:'100%',
         height:45,
         backgroundColor:'black',
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     },
     ad:{
         position:'absolute',
-        bottom:45,
+        bottom:45 + (45 / 2) - 2,
         height:50,
         width:'100%',
         backgroundColor:'transparent'

@@ -6,6 +6,8 @@ import {_getHome} from "../../utils/api";
 import Card from "../ui/Card";
 import Error from "../ui/Error";
 import {Navigation} from "react-native-navigation";
+import { BannerAd } from 'react-native-smaato-ad'
+
 
 const View = Animated.View;
 const FlatList = Animated.FlatList;
@@ -20,6 +22,7 @@ const Home = (props:props) => {
     const refEvent = useRef<any>();
     const [state,setState] = useState<_getHome[]>([]);
     const [error,setError] = useState<boolean>(false);
+    const AnimatedNode = useRef<Animated.Value>(new Animated.Value(0)).current;
 
     const onCallBack = useCallback(() => {
         _getHome().then((results) => { setState(results) }).catch(() => {setError(true)});
@@ -96,12 +99,36 @@ const Home = (props:props) => {
     return (
         <View style={style.container}>
             <FlatList
+                scrollEventThrottle={0.1}
+                onScroll={Animated.event([{
+                    nativeEvent:{
+                        contentOffset:{
+                            y:AnimatedNode
+                        }
+                    }
+                }],{ useNativeDriver:true })}
                 data={state.length > 1 ? state.slice(0,24) : []}
                 renderItem={renderContent}
                 numColumns={3}
                 keyExtractor={renderKey}
                 ListEmptyComponent={(<Loading/>)}
             />
+            <View style={{
+                position:'absolute',
+                bottom:-(5 / 3),
+                transform:[{
+                    translateY:AnimatedNode.interpolate({
+                        inputRange:[0,200],
+                        outputRange:[0,50],
+                        extrapolate:'clamp'
+                    })
+                }]
+            }}>
+                <BannerAd
+                    style={{height:50,width:320}}
+                    adID={'130897362'}
+                    bannerAdSize={'XX_LARGE_320x50'} adReload={'VERY_SHORT'}/>
+            </View>
         </View>
     )
 }

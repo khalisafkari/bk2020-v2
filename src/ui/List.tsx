@@ -23,9 +23,9 @@ export default React.memo((props:props) => {
                        topBar:{
                            visible:false
                        },
-                       statusBar:{
-                           visible:false
-                       },
+                       // statusBar:{
+                       //     visible:false
+                       // },
                        bottomTabs:{
                            visible:false
                        }

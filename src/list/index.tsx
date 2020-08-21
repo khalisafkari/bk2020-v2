@@ -6,6 +6,7 @@ import {useImmer} from "use-immer";
 import CardSearch from "../ui/CardSearch";
 import Loading from "../ui/Loading";
 import Error from "../ui/Error";
+import { BannerAd } from 'react-native-smaato-ad'
 
 interface states {
     data:_getSearch[]
@@ -38,6 +39,7 @@ const List = (props:any) => {
     const refEvent = useRef<any>();
     const FlatRef = useRef<any>();
     const scrollY = useRef<Animated.AnimatedValue>(new Animated.Value(0)).current;
+    const AnimatedNode = useRef<Animated.AnimatedValue>(new Animated.Value(0)).current;
 
     const onFetch = useCallback( () => {
         _getList().then((res) => {
@@ -191,6 +193,10 @@ const List = (props:any) => {
         )
     }
 
+    const onLoadedAd = useCallback(() => {
+        AnimatedNode.setValue(1)
+    },[])
+
     return (
         <DrawerLayoutAndroid
             ref={drawerRef}
@@ -208,6 +214,22 @@ const List = (props:any) => {
                 onEndReached={EndReached}
                 ListEmptyComponent={() => (<Loading/>)}
             />
+            <View style={{
+                position:'absolute',
+                bottom:-2,
+                transform:[{translateY:AnimatedNode.interpolate({
+                        inputRange:[0,1],
+                        outputRange:[50,0],
+                        extrapolate:'clamp'
+                })}]}}>
+            <BannerAd
+                style={{ height:50,width:320 }}
+                onAdLoaded={onLoadedAd}
+                adID={'130897362'}
+                bannerAdSize={'XX_LARGE_320x50'}
+                adReload={'VERY_SHORT'}
+            />
+            </View>
         </View>
         </DrawerLayoutAndroid>
     )

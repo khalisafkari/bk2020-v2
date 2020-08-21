@@ -1,15 +1,14 @@
-import React, {useCallback, useEffect, useRef} from "react";
-import {Animated, Linking, PanResponder, Pressable, StyleSheet, TextInput, useWindowDimensions} from "react-native";
+import React, {useCallback, useRef} from "react";
+import {Animated, Linking, Pressable, StyleSheet, TextInput} from "react-native";
 import {useImmer} from "use-immer";
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import FastImage from "react-native-fast-image";
-import {AppodealBanner} from 'react-native-appodeal'
-import initialize from "../../utils/ad/initialisation";
 const View = Animated.View;
 const FlatList = Animated.FlatList;
 const Text = Animated.Text;
 const Image = Animated.createAnimatedComponent(FastImage)
+import { BannerAd } from 'react-native-smaato-ad';
 
 interface states {
     data:Array<any>
@@ -22,10 +21,6 @@ const Pixabay = () => {
     });
     const scrollY = useRef<Animated.AnimatedValue>(new Animated.Value(0)).current;
 
-    const initCall = useCallback(() => {
-        initialize(false);
-    },[])
-    useEffect(initCall,[]);
 
     const Notice = useCallback(() => {
         return (
@@ -131,7 +126,7 @@ const Pixabay = () => {
                 />
                 <Icon name={"search"} style={{marginHorizontal:5}} size={25} color={'white'} />
             </View>
-            {state.data.length > 1 ? <AppodealBanner adSize={'phone'}/> : null}
+            {state.data.length > 1 ? <BannerAd adID={'130897362'} adReload={'VERY_SHORT'} bannerAdSize={'XX_LARGE_320x50'}/> : null}
         </View>
     )
 }

@@ -1,8 +1,8 @@
 import {Navigation} from 'react-native-navigation';
 import analytics from '@react-native-firebase/analytics';
+import Smaato from 'react-native-smaato-ad';
 import SplashCheker from "./src/SplashCheker";
 import Pixabay from "./src/pixabay";
-
 //Westmanga
 import Home from "./src/home";
 import List from "./src/list";
@@ -12,11 +12,8 @@ import History from "./src/history";
 import Search from "./src/search";
 import Details from "./src/details";
 import Bookmark from "./src/bookmark";
-//End Westmanga
 
-//Test
-// import AdBanner from "./src/ui/AdBanner";
-
+Smaato.init("1100044945");
 
 Navigation.registerComponent('com.splash',() => SplashCheker);
 Navigation.registerComponent('com.pixabay',() => Pixabay);
@@ -28,23 +25,6 @@ Navigation.registerComponent('com.history',() => History);
 Navigation.registerComponent('com.search',() => Search);
 Navigation.registerComponent('com.details',() => Details);
 Navigation.registerComponent('com.bookmark',() => Bookmark);
-
-//Tester
-// Navigation.registerComponent('com.ad',() => AdBanner);
-
-// Navigation.events().registerAppLaunchedListener(async () => {
-//     Navigation.setRoot({
-//         root:{
-//             stack:{
-//                 children:[{
-//                     component:{
-//                         name:'com.ad'
-//                     }
-//                 }]
-//             }
-//         }
-//     })
-// })
 
 Navigation.events().registerAppLaunchedListener(async () => {
         Navigation.setRoot({
@@ -64,20 +44,6 @@ Navigation.events().registerComponentDidAppearListener(({componentType,passProps
         }
     }
 })
-
-// Navigation.events().registerAppLaunchedListener(async () => {
-//     Navigation.setRoot({
-//         root:{
-//             stack:{
-//                 children:[{
-//                     component:{
-//                         name:'com.sekte.home'
-//                     }
-//                 }]
-//             }
-//         }
-//     })
-// })
 
 Navigation.setDefaultOptions({
     layout:{

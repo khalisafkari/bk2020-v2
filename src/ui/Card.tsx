@@ -5,7 +5,8 @@ import FastImage from "react-native-fast-image";
 import {Navigation} from "react-native-navigation";
 
 interface props extends _getHome {
-    componentId:string
+    componentId:stringm
+    
 }
 
 const Card = (props:props) => {

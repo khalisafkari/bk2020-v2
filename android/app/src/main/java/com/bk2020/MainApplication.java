@@ -45,7 +45,6 @@ public class MainApplication extends NavigationApplication {
   @Override
   public void onCreate() {
     super.onCreate();
-    
     initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
   }
 
