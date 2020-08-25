@@ -1,8 +1,10 @@
 import MMKVStorage  from "react-native-mmkv-storage";
 import pagination from "../pagination";
+import { IntertitialSmaato,RewardSmaato } from "react-native-smaato-ad";
 
 const hisid = new MMKVStorage.Loader().withInstanceID('history').initialize();
 const hispostid  = new MMKVStorage.Loader().withInstanceID('HistoryId').initialize();
+const adshow = new MMKVStorage.Loader().withInstanceID('adShow').initialize();
 
 
 export interface historyPost {
@@ -99,5 +101,34 @@ export const _setHistoryId = async (id:string):Promise<boolean> => {
         return true;
     } catch (e) {
         return Promise.reject(false);
+    }
+}
+
+export const _adShow = async () => {
+    try {
+        const total = await adshow.getIntAsync('ad');
+        if (total === 0) {
+            RewardSmaato.showAd("131079648"); // demo id 130626426 // live 131079648 West manga rewarded video 320x480
+            await adshow.setIntAsync("ad",5);
+        } else {
+            await adshow.setIntAsync("ad",total - 1);
+        }
+    } catch (e) {
+        await adshow.setIntAsync("ad",5);
+    }
+}
+
+
+export const _adShowChapter = async () => {
+    try {
+        const total = await adshow.getIntAsync('adchapter');
+        if (total === 0) {
+            IntertitialSmaato.showAd("131079635"); // demo id 130626426 // live 131079635 West Manga Interstitial Video 320x480
+            await adshow.setIntAsync("adchapter",10);
+        } else {
+            await adshow.setIntAsync("adchapter",total - 1);
+        }
+    } catch (e) {
+        await adshow.setIntAsync("adchapter",10);
     }
 }

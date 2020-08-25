@@ -1,7 +1,27 @@
 import axios from "axios";
 import cheerio from "cheerio";
+import perf from '@react-native-firebase/perf';
 
 const manga = axios.create({ baseURL:'https://westmanga.info',headers:{ Referer:'com.bk2020.production' },timeout:1000});
+
+let httpMetric;
+manga.interceptors.request.use(async (config) => {
+    const url = config.url.indexOf('.info') !== -1 ? config.url : config.baseURL
+    httpMetric = perf().newHttpMetric(url,'GET');
+    await httpMetric.start();
+    return config;
+})
+manga.interceptors.response.use(async (response) => {
+    httpMetric.setHttpResponseCode(response.status);
+    httpMetric.setResponseContentType(response.headers['content-type']);
+    await httpMetric.stop();
+    return response;
+},async (error) => {
+    httpMetric.setHttpResponseCode(error.response.status);
+    httpMetric.setResponseContentType(error.response.headers['content-type']);
+    await httpMetric.stop();
+    return Promise.reject(error);
+})
 
 export interface _getHome {
     id:string

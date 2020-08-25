@@ -10,6 +10,7 @@ export default (data?:Array<any>) => {
                 body {
                     padding: 0;
                     margin: 0;
+                    background-color: rgba(255,255,255,.2);
                 }
                 img {
                     width: 100%;
@@ -18,9 +19,9 @@ export default (data?:Array<any>) => {
             </style>
             </head>
             <body>
-                <div style="height: 60px;"></div>
-                <div id="view"> ${item}</div>
-                <div style="height: 150px;"></div>
+                <div style="height: 55px;"></div>
+                <div id="view" style="background-color: rgba(255,255,255,.2);"> ${item}</div>
+                <div style="height: 80px;"></div>
             </body>
             <script>
                 const el = document.getElementById('view');
