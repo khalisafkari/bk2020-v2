@@ -76,11 +76,32 @@ const Bookmark = (props:any) => {
             useNativeDriver:true,
             duration:2000
         }).start()
-    },[])
+    },[]);
+
+    const onMoreLoaded = useCallback(() => {
+        const { currentPage,totalPages } = state;
+        if (currentPage > totalPages) {
+
+        } else {
+            _getAllBookmark(currentPage + 1).then((results) => {
+                setState(draft => {
+                    draft.data = draft.data.concat(results.data);
+                    draft.currentPage = results.currentPage;
+                    draft.totalPages = results.totalPages;
+                })
+            }).catch(() => {})
+        }
+    },[state])
 
     return (
         <View style={{flex:1}}>
-            <FlatList keyExtractor={keyVirtual} numColumns={3} data={state.data || []} renderItem={renderContent}/>
+            <FlatList
+                keyExtractor={keyVirtual}
+                numColumns={3} data={state.data || []}
+                renderItem={renderContent}
+                onEndReachedThreshold={0.1}
+                onEndReached={onMoreLoaded}
+            />
             <View style={[styles.warning,{
                 transform:[{
                     translateY:refScollArrow.interpolate({

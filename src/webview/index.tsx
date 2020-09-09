@@ -148,9 +148,9 @@ const OnView = (props:props) => {
             })
         }
     },[state])
+
     const onBack = useCallback(() => {
         Navigation.pop(props.componentId)
-        _adShow();
     },[])
 
     return (

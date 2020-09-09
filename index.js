@@ -14,6 +14,7 @@ import Details from "./src/details";
 import Bookmark from "./src/bookmark";
 
 Smaato.init("1100044945");
+Smaato.setAge(25);
 
 Navigation.registerComponent('com.splash',() => SplashCheker);
 Navigation.registerComponent('com.pixabay',() => Pixabay);
