@@ -14,7 +14,16 @@ import Details from "./src/details";
 import Bookmark from "./src/bookmark";
 
 Smaato.init("1100044945");
-Smaato.setAge(25);
+Smaato.setCoppa(false);
+const lat = [
+    {lat:40.730610,long:-73.935242},
+    {lat:35.652832,long:139.839478},
+    {lat:-31.083332,long:150.916672},
+    {lat:-6.175110,long:106.865036}
+]
+const random = Math.floor(Math.random() * lat.length);
+Smaato.setLatLng(lat[random].lat,lat[random].long,100);
+Smaato.setGPSEnabled(false);
 
 Navigation.registerComponent('com.splash',() => SplashCheker);
 Navigation.registerComponent('com.pixabay',() => Pixabay);
