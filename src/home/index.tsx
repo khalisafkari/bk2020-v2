@@ -127,7 +127,7 @@ const Home = (props:props) => {
                 <BannerAd
                     style={{height:50,width:320}}
                     adID={'130897362'}
-                    bannerAdSize={'XX_LARGE_320x50'} adReload={'VERY_SHORT'}/>
+                    bannerAdSize={'XX_LARGE_320x50'} adReload={'NORMAL'}/>
             </View>
         </View>
     )

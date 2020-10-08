@@ -227,7 +227,7 @@ const List = (props:any) => {
                 onAdLoaded={onLoadedAd}
                 adID={'130897362'}
                 bannerAdSize={'XX_LARGE_320x50'}
-                adReload={'VERY_SHORT'}
+                adReload={'NORMAL'}
             />
             </View>
         </View>

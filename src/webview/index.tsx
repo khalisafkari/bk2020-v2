@@ -241,7 +241,7 @@ const OnView = (props:props) => {
                     })
                 }]
             }]}>
-                <BannerAd style={[styles.Ad]}  adID={"130897362"} bannerAdSize={'XX_LARGE_320x50'} adReload={'VERY_SHORT'}/>
+                <BannerAd style={[styles.Ad]}  adID={"130897362"} bannerAdSize={'XX_LARGE_320x50'} adReload={'NORMAL'}/>
             </Animated.View>
         </React.Fragment>
     )
