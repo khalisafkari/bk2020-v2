@@ -1,294 +1,383 @@
 import React, {useCallback, useEffect, useRef} from 'react';
-import {useWindowDimensions, View, Animated, StyleSheet, Pressable, Text, Alert} from "react-native";
-import { WebView } from 'react-native-webview';
-import {useImmer} from "use-immer";
-import {_getImageContent} from "../../utils/api";
-import html from "./html";
-import Loading from "../ui/Loading";
+import {
+  useWindowDimensions,
+  View,
+  Animated,
+  StyleSheet,
+  Pressable,
+  Text,
+  Alert,
+} from 'react-native';
+import {WebView} from 'react-native-webview';
+import {useImmer} from 'use-immer';
+import {_getImageContent} from '../../utils/api';
+import html from './html';
+import Loading from '../ui/Loading';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Navigation } from "react-native-navigation";
-import { BannerAd } from "react-native-smaato-ad";
-import { _setHistoryId, _updateHistoryId, _adShow,_adShowChapter } from "../../utils/database/HistoryId";
+import {Navigation} from 'react-native-navigation';
+import {BannerAd} from 'react-native-smaato-ad';
+import {
+  _setHistoryId,
+  _updateHistoryId,
+  _adShow,
+  _adShowChapter,
+} from '../../utils/database/HistoryId';
+import SKX from 'react-native-sdkx'
 
 interface props {
-    root: string;
-    id: string
-    time: string;
-    title: string;
-    componentId: string;
+  root: string;
+  id: string;
+  time: string;
+  title: string;
+  componentId: string;
 }
 
 interface istate {
-    id:string
-    html?:string
-    next?:string | null
-    prev?:string | null
+  id: string;
+  html?: string;
+  next?: string | null;
+  prev?: string | null;
 }
 
-const OnView = (props:props) => {
+const OnView = (props: props) => {
+  const {height} = useWindowDimensions();
+  const webRef = useRef<any>();
+  const topBotAnimated = useRef<Animated.Value>(new Animated.Value(0)).current;
+  const [state, setState] = useImmer<istate>({
+    id: props.id,
+    html: '',
+    prev: '',
+    next: '',
+  });
 
-    const { height } = useWindowDimensions();
-    const webRef = useRef<any>();
-    const topBotAnimated = useRef<Animated.Value>(new Animated.Value(0)).current;
-    const [state,setState] = useImmer<istate>({
-        id:props.id,
-        html:'',
-        prev:'',
-        next:''
-    });
+  const onFetch = useCallback(() => {
+    _getImageContent(state.id)
+      .then((results) => {
+        setState((draft) => {
+          draft.id = state.id;
+          draft.html = html(results.content);
+          draft.prev = results.prev;
+          draft.next = results.next;
+        });
+        _updateHistoryId(
+          props.root,
+          props.id,
+          'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',', '-'),
+        );
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Network Failed');
+      });
+  }, []);
 
-    const onFetch = useCallback(() => {
-        _getImageContent(state.id).then((results) => {
-            setState(draft => {
-                draft.id = state.id;
-                draft.html = html(results.content);
-                draft.prev = results.prev;
-                draft.next = results.next;
-            })
-            _updateHistoryId(
-                props.root,
-                props.id,
-                'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-'));
-        }).catch(() => {
-            Alert.alert('Error','Network Failed')
+  const lifeCycle = useCallback(() => {
+    const listener = {
+      componentDidAppear: () => {
+      },
+      componentDidDisappear: () => {
+        _adShow();
+      },
+    };
+    const unsubscribe = Navigation.events().registerComponentListener(
+      listener,
+      props.componentId,
+    );
+    return () => {
+      unsubscribe.remove();
+    };
+  }, []);
+
+  useEffect(onFetch, []);
+  useEffect(lifeCycle, []);
+
+  const onScrollEvent = useCallback(({nativeEvent}) => {
+    const size: any =
+      typeof (nativeEvent.contentSize.height - height) === 'number' &&
+      (nativeEvent.contentSize.height - height).toFixed();
+    const position: any =
+      typeof nativeEvent.contentOffset.y === 'number' &&
+      nativeEvent.contentOffset.y.toFixed();
+
+    if (position > 100) {
+      if (position + 500 > size) {
+        Animated.timing(topBotAnimated, {
+          duration: 1000,
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        Animated.timing(topBotAnimated, {
+          duration: 1000,
+          toValue: 1,
+          useNativeDriver: true,
+        }).start();
+      }
+    } else {
+      Animated.timing(topBotAnimated, {
+        duration: 1000,
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, []);
+  const onMessageEvent = useCallback(({nativeEvent}) => {
+    if (nativeEvent.data) {
+      Animated.timing(topBotAnimated, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, []);
+  const onPrev = useCallback(() => {
+    _adShowChapter();
+    if (state.prev && state.html) {
+      setState((draft) => {
+        draft.html = '';
+      });
+      _getImageContent(state.prev)
+        .then((results) => {
+          setState((draft) => {
+            draft.id = state.prev;
+            draft.html = html(results.content);
+            draft.next = results.next;
+            draft.prev = results.prev;
+          });
+          _setHistoryId(state.prev);
+          _updateHistoryId(
+            props.root,
+            state.prev,
+            'Chapter ' +
+              state.prev.match(/(\d+)/g).toString().replace(',', '-'),
+          );
         })
-    },[])
+        .catch(() => {
+          Alert.alert('Error', 'Network Failed');
+        });
+    }
+  }, [state]);
+  const onNext = useCallback(() => {
+    _adShowChapter();
+    if (state.next !== null && state.html) {
+      setState((draft) => {
+        draft.html = '';
+      });
+      _getImageContent(state.next)
+        .then((results) => {
+          setState((draft) => {
+            draft.id = state.next;
+            draft.html = html(results.content);
+            draft.next = results.next;
+            draft.prev = results.prev;
+          });
+          _setHistoryId(state.next);
+          _updateHistoryId(
+            props.root,
+            state.next,
+            'Chapter ' +
+              state.next.match(/(\d+)/g).toString().replace(',', '-'),
+          );
+        })
+        .catch(() => {
+          Alert.alert('Error', 'Network Failed');
+        });
+    }
+  }, [state]);
 
-    const lifeCycle = useCallback(() => {
-        const listener = {
-            componentDidAppear:() => {},
-            componentDidDisappear:()=>{_adShow();}
-        }
-        const unsubscribe = Navigation.events().registerComponentListener(listener, props.componentId);
-        return () => {
-            unsubscribe.remove();
-        };
-    },[])
+  const onBack = useCallback(() => {
+    Navigation.pop(props.componentId);
+  }, []);
 
-    useEffect(onFetch,[])
-    useEffect(lifeCycle,[])
-
-    const onScrollEvent = useCallback(({ nativeEvent }) => {
-        const size:any = typeof (nativeEvent.contentSize.height - height) === "number" &&
-            (nativeEvent.contentSize.height - height).toFixed();
-        const position:any = typeof (nativeEvent.contentOffset.y) === "number" &&
-            (nativeEvent.contentOffset.y).toFixed();
-
-        if (position > 100) {
-            if ((position + 500) > size) {
-                Animated.timing(topBotAnimated,{
-                    duration:1000,
-                    toValue:0,
-                    useNativeDriver:true
-                }).start();
-            } else {
-                Animated.timing(topBotAnimated,{
-                    duration:1000,
-                    toValue:1,
-                    useNativeDriver:true
-                }).start();
-            }
-        } else {
-            Animated.timing(topBotAnimated,{
-                duration:1000,
-                toValue:0,
-                useNativeDriver:true
-            }).start();
-        }
-
-    },[])
-    const onMessageEvent = useCallback(({ nativeEvent }) => {
-        if (nativeEvent.data) {
-            Animated.timing(topBotAnimated,{
-                toValue:0,
-                duration:500,
-                useNativeDriver:true
-            }).start()
-        }
-    },[])
-    const onPrev = useCallback(() => {
-        _adShowChapter();
-        if (state.prev  && state.html) {
-            setState(draft => {draft.html = ''})
-            _getImageContent(state.prev).then((results) => {
-                setState(draft => {
-                    draft.id = state.prev;
-                    draft.html = html(results.content);
-                    draft.next = results.next;
-                    draft.prev = results.prev;
-                })
-                _setHistoryId(state.prev);
-                _updateHistoryId(
-                props.root,
-                state.prev,
-                'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-'));
-            }).catch(() => {
-                Alert.alert('Error','Network Failed')
-            })
-        }
-    },[state])
-    const onNext = useCallback(() => {
-        _adShowChapter();
-        if (state.next !== null && state.html) {
-            setState(draft => {draft.html = ''})
-            _getImageContent(state.next).then((results) => {
-                setState(draft => {
-                    draft.id = state.next;
-                    draft.html = html(results.content);
-                    draft.next = results.next;
-                    draft.prev = results.prev;
-                })
-                _setHistoryId(state.next);
-                _updateHistoryId(
-                props.root,
-                state.next,
-                'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-'));
-            }).catch(() => {
-                Alert.alert('Error','Network Failed')
-            })
-        }
-    },[state])
-
-    const onBack = useCallback(() => {
-        Navigation.pop(props.componentId)
-    },[])
-
-    return (
-        <React.Fragment>
-            <View style={{ height,backgroundColor:'rgba(255,255,255,.2)' }}>
-                {
-                    state.html ? (
-                        <WebView
-                            ref={webRef}
-                            onScroll={onScrollEvent}
-                            androidLayerType={'hardware'}
-                            contentMode={'recommended'}
-                            source={{html:state.html}}
-                            bounces={false}
-                            automaticallyAdjustContentInsets={false}
-                            showsVerticalScrollIndicator={false}
-                            showsHorizontalScrollIndicator={false}
-                            onMessage={onMessageEvent}
-                        />
-                    ) : (<Loading/>)
-                }
-            </View>
-            <Animated.View style={[styles.Header,{
-                transform:[{
-                    translateY:topBotAnimated.interpolate({
-                        inputRange:[0,1],
-                        outputRange:[0,-50],
-                        extrapolate:'clamp'
-                    })
-                }]
-            }]}>
-                <Pressable onPress={onBack} style={press => [
-                    { borderRadius:5,paddingHorizontal:5 },
-                    press.pressed ? { backgroundColor:'rgba(255,255,255,.35)' } : { backgroundColor:'transparent' },
-                    styles.btnTopBot
-                ]}>
-                    <Icon name={'ios-arrow-back-sharp'} color={'white'} size={25} />
-                    <Text style={{color:'white',fontSize:12,fontWeight:'600'}}>{ 'EPISODE ' + state.id.match(/(\d+)/g,).toString().replace(',','-')}</Text>
-                </Pressable>
-            </Animated.View>
-            <Animated.View style={[styles.Footer,{
-                transform:[{
-                    translateY:topBotAnimated.interpolate({
-                        inputRange:[0,1],
-                        outputRange:[0,50],
-                        extrapolate:'clamp'
-                    })
-                }]
-            }]}>
-                <Pressable onPress={onPrev} style={press => [
-                    { borderRadius:5,paddingHorizontal:5 },
-                    press.pressed ? { backgroundColor:'rgba(255,255,255,.35)' } : { backgroundColor:'transparent' },
-                    styles.btnTopBot
-                ]}>
-                    <Icon name={'ios-arrow-back-sharp'} color={
-                        state.prev ? 'white' : 'rgba(255,255,255,.35)'
-                    } size={25} />
-                    <Text style={{
-                        color:state.prev ? 'white' : 'rgba(255,255,255,.35)',
-                        fontSize:12,fontWeight:'800'}}>PREV</Text>
-                </Pressable>
-                <Pressable style={press => [
-                    { borderRadius:10,paddingVertical:5,paddingHorizontal:10 },
-                    press.pressed ? { backgroundColor:'rgba(255,255,255,.35)' } : { backgroundColor:'transparent' },
-                    styles.btnTopBot
-                ]}>
-                    <Icon name={'chatbox-ellipses-outline'} color={'white'} size={20} />
-                </Pressable>
-                <Pressable onPress={onNext} style={press => [
-                    { borderRadius:5,paddingHorizontal:5 },
-                    press.pressed ? { backgroundColor:'rgba(255,255,255,.35)' } : { backgroundColor:'transparent' },
-                    styles.btnTopBot
-                ]}>
-                    <Text style={{
-                        color:state.next ? 'white' : 'rgba(255,255,255,.35)',
-                        fontSize:12,fontWeight:'800'}}>NEXT</Text>
-                    <Icon name={'ios-arrow-forward-sharp'} color={
-                        state.next ? 'white' : 'rgba(255,255,255,.35)'
-                    } size={25} />
-                </Pressable>
-            </Animated.View>
-            <Animated.View style={[styles.AdFooter,{
-                transform:[{
-                    translateY:topBotAnimated.interpolate({
-                        inputRange:[0,1],
-                        outputRange:[0,50],
-                        extrapolate:'clamp'
-                    })
-                }]
-            }]}>
-                <BannerAd style={[styles.Ad]}  adID={"130897362"} bannerAdSize={'XX_LARGE_320x50'} adReload={'NORMAL'}/>
-            </Animated.View>
-        </React.Fragment>
-    )
-}
+  return (
+    <React.Fragment>
+      <View style={{height, backgroundColor: 'rgba(255,255,255,.2)'}}>
+        {state.html ? (
+          <WebView
+            ref={webRef}
+            onScroll={onScrollEvent}
+            androidLayerType={'hardware'}
+            contentMode={'recommended'}
+            source={{html: state.html}}
+            bounces={false}
+            automaticallyAdjustContentInsets={false}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            onMessage={onMessageEvent}
+          />
+        ) : (
+          <Loading />
+        )}
+      </View>
+      <Animated.View
+        style={[
+          styles.Header,
+          {
+            transform: [
+              {
+                translateY: topBotAnimated.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -50],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
+        <Pressable
+          onPress={onBack}
+          style={(press) => [
+            {borderRadius: 5, paddingHorizontal: 5},
+            press.pressed
+              ? {backgroundColor: 'rgba(255,255,255,.35)'}
+              : {backgroundColor: 'transparent'},
+            styles.btnTopBot,
+          ]}>
+          <Icon name={'ios-arrow-back-sharp'} color={'white'} size={25} />
+          <Text style={{color: 'white', fontSize: 12, fontWeight: '600'}}>
+            {'EPISODE ' + state.id.match(/(\d+)/g).toString().replace(',', '-')}
+          </Text>
+        </Pressable>
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.Footer,
+          {
+            transform: [
+              {
+                translateY: topBotAnimated.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 50],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
+        <Pressable
+          onPress={onPrev}
+          style={(press) => [
+            {borderRadius: 5, paddingHorizontal: 5},
+            press.pressed
+              ? {backgroundColor: 'rgba(255,255,255,.35)'}
+              : {backgroundColor: 'transparent'},
+            styles.btnTopBot,
+          ]}>
+          <Icon
+            name={'ios-arrow-back-sharp'}
+            color={state.prev ? 'white' : 'rgba(255,255,255,.35)'}
+            size={25}
+          />
+          <Text
+            style={{
+              color: state.prev ? 'white' : 'rgba(255,255,255,.35)',
+              fontSize: 12,
+              fontWeight: '800',
+            }}>
+            PREV
+          </Text>
+        </Pressable>
+        <Pressable
+          style={(press) => [
+            {borderRadius: 10, paddingVertical: 5, paddingHorizontal: 10},
+            press.pressed
+              ? {backgroundColor: 'rgba(255,255,255,.35)'}
+              : {backgroundColor: 'transparent'},
+            styles.btnTopBot,
+          ]}>
+          <Icon name={'chatbox-ellipses-outline'} color={'white'} size={20} />
+        </Pressable>
+        <Pressable
+          onPress={onNext}
+          style={(press) => [
+            {borderRadius: 5, paddingHorizontal: 5},
+            press.pressed
+              ? {backgroundColor: 'rgba(255,255,255,.35)'}
+              : {backgroundColor: 'transparent'},
+            styles.btnTopBot,
+          ]}>
+          <Text
+            style={{
+              color: state.next ? 'white' : 'rgba(255,255,255,.35)',
+              fontSize: 12,
+              fontWeight: '800',
+            }}>
+            NEXT
+          </Text>
+          <Icon
+            name={'ios-arrow-forward-sharp'}
+            color={state.next ? 'white' : 'rgba(255,255,255,.35)'}
+            size={25}
+          />
+        </Pressable>
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.AdFooter,
+          {
+            transform: [
+              {
+                translateY: topBotAnimated.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 50],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
+        <BannerAd
+          style={[styles.Ad]}
+          adID={'130897362'}
+          bannerAdSize={'XX_LARGE_320x50'}
+          adReload={'NORMAL'}
+        />
+      </Animated.View>
+    </React.Fragment>
+  );
+};
 
 const styles = StyleSheet.create({
-    Header:{
-        position:'absolute',
-        height:50,
-        top:0,
-        width:'100%',
-        backgroundColor:'black',
-        flexDirection:'row',
-        alignItems:'center',
-        paddingHorizontal:10
-    },
-    btnTopBot:{
-        flexDirection:'row',
-        alignItems:'center'
-    },
-    Footer:{
-        position:'absolute',
-        height:50,
-        bottom:0,
-        width:'100%',
-        backgroundColor:'black',
-        justifyContent:'space-between',
-        flexDirection:'row',
-        alignItems:'center',
-        paddingHorizontal:10
-    },
-    Ad:{
-        height:50,
-        width:320
-    },
-    AdFooter:{
-        position:'absolute',
-        height:50,
-        bottom:48,
-        width:'100%',
-        justifyContent:'center',
-        flexDirection:'row',
-        alignItems:'center',
-    }
-})
+  Header: {
+    position: 'absolute',
+    height: 50,
+    top: 0,
+    width: '100%',
+    backgroundColor: 'black',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  btnTopBot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  Footer: {
+    position: 'absolute',
+    height: 50,
+    bottom: 0,
+    width: '100%',
+    backgroundColor: 'black',
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  Ad: {
+    height: 50,
+    width: 320,
+  },
+  AdFooter: {
+    position: 'absolute',
+    height: 50,
+    bottom: 48,
+    width: '100%',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+});
 
-export default OnView
+export default OnView;
 
 // import React, {useCallback, useLayoutEffect, useRef} from "react";
 // import {

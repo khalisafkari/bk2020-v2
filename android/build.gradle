@@ -30,7 +30,7 @@ allprojects {
             url("$rootDir/../node_modules/react-native-v8/dist")
         }
         maven {
-            url("$rootDir/../node_modules/v8-android-jit-nointl/dist")
+            url("$rootDir/../node_modules/v8-android-nointl/dist")
         }
         maven { url "https://s3.amazonaws.com/smaato-sdk-releases/" }
 

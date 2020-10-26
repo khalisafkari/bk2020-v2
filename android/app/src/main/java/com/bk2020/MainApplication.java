@@ -11,7 +11,6 @@ import com.facebook.react.ReactPackage;
 import com.facebook.soloader.SoLoader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import androidx.multidex.MultiDex;
 
 public class MainApplication extends NavigationApplication {
 
@@ -48,11 +47,6 @@ public class MainApplication extends NavigationApplication {
     initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
   }
 
-   @Override
-   protected void attachBaseContext(Context base) {
-       super.attachBaseContext(base);
-       MultiDex.install(this);
-   }
 
   /**
    * Loads Flipper in React Native templates. Call this in the onCreate method with something like
