@@ -226,8 +226,10 @@ const List = (props:any) => {
                 style={{ height:50,width:320 }}
                 onAdLoaded={onLoadedAd}
                 adID={'130897362'}
-                bannerAdSize={'XX_LARGE_320x50'}
-                adReload={'NORMAL'}
+                adsize={'XX_LARGE_320x50'}
+                adsize={'XX_LARGE_320x50'}
+                lat={-31.083332}
+                long={150.916672}
             />
             </View>
         </View>

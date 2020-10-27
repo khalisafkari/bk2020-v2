@@ -328,8 +328,10 @@ const OnView = (props: props) => {
         <BannerAd
           style={[styles.Ad]}
           adID={'130897362'}
-          bannerAdSize={'XX_LARGE_320x50'}
-          adReload={'NORMAL'}
+          adsize={'XX_LARGE_320x50'}
+          lat={-31.083332}
+          long={150.916672}
+          adsize={'XX_LARGE_320x50'}
         />
       </Animated.View>
     </React.Fragment>

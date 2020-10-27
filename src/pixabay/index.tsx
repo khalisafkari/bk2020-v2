@@ -126,7 +126,7 @@ const Pixabay = () => {
                 />
                 <Icon name={"search"} style={{marginHorizontal:5}} size={25} color={'white'} />
             </View>
-            {state.data.length > 1 ? <BannerAd adID={'130897362'} adReload={'VERY_SHORT'} bannerAdSize={'XX_LARGE_320x50'}/> : null}
+            {state.data.length > 1 ? <BannerAd adID={'130897362'} adsize={'XX_LARGE_320x50'}/> : null}
         </View>
     )
 }
