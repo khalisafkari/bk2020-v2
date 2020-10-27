@@ -331,7 +331,6 @@ const OnView = (props: props) => {
           adsize={'XX_LARGE_320x50'}
           lat={-31.083332}
           long={150.916672}
-          adsize={'XX_LARGE_320x50'}
         />
       </Animated.View>
     </React.Fragment>

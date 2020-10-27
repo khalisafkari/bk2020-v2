@@ -121,15 +121,14 @@ export const _setHistoryId = async (id: string): Promise<boolean> => {
 export const _adShow = async () => {
   try {
     const total = await adshow.getIntAsync('ad');
-    const init = await SDK.loadAdIntertitial('float-4898');
+
     if (total === 0) {
       RewardSmaato.showAd('131079648'); // demo id 130626426 // live 131079648 West manga rewarded video 320x480
       await adshow.setIntAsync('ad', 5);
+      await SDK.loadAdIntertitial('float-4898');
+      SDK.showIntertitialAd();
     } else {
       await adshow.setIntAsync('ad', total - 1);
-    }
-    if (init) {
-      SDK.showIntertitialAd();
     }
   } catch (e) {
     await adshow.setIntAsync('ad', 5);
