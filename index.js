@@ -18,7 +18,7 @@ Smaato.init('1100044945');
 SKDX.initialize('45921653');
 SKDX.MopubAds(false);
 SKDX.setFacebookAds(false);
-SKDX.setDebug(true);
+SKDX.setDebug(false);
 const lat = [
   {lat: 40.73061, long: -73.935242},
   {lat: 35.652832, long: 139.839478},
