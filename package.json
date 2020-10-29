@@ -25,11 +25,11 @@
     "react-native-mmkv-storage": "^0.3.7",
     "react-native-navigation": "^7.2.0",
     "react-native-sdkx": "^0.1.6",
-    "react-native-smaato-ad": "^21.5.6",
+    "react-native-smaato-ad": "^21.5.7",
     "react-native-sqlite-storage": "^5.0.0",
     "react-native-v8": "^0.63.3-patch.0",
     "react-native-vector-icons": "^7.0.0",
-    "react-native-webview": "^10.9.2",
+    "react-native-webview": "^10.10.0",
     "stream": "^0.0.2",
     "use-immer": "^0.4.1",
     "v8-android-nointl": "^8.84.0"

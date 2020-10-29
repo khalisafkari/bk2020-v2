@@ -125,8 +125,9 @@ export const _adShow = async () => {
     if (total === 0) {
       RewardSmaato.showAd('131079648'); // demo id 130626426 // live 131079648 West manga rewarded video 320x480
       await adshow.setIntAsync('ad', 5);
-      await SDK.loadAdIntertitial('float-4898');
-      SDK.showIntertitialAd();
+      if (await SDK.loadAdIntertitial('float-4898')) {
+        await SDK.showIntertitialAd();
+      }
     } else {
       await adshow.setIntAsync('ad', total - 1);
     }

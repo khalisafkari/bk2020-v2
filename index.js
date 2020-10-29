@@ -16,9 +16,9 @@ import Bookmark from './src/bookmark';
 
 Smaato.init('1100044945');
 SKDX.initialize('45921653');
-Smaato.setGPSEnabled(true);
-Smaato.setLanguage('jp');
-Smaato.setAge(25);
+Smaato.setAge(35);
+Smaato.setCoppa(true);
+Smaato.setLanguage('en');
 Smaato.setSearchQuery('covid19,bitcoin, lamborghini, san-francisco,');
 
 SKDX.MopubAds(false);
