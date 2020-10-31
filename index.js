@@ -1,7 +1,7 @@
 import {Navigation} from 'react-native-navigation';
 import analytics from '@react-native-firebase/analytics';
 import Smaato from 'react-native-smaato-ad';
-import SKDX from 'react-native-sdkx';
+import SDK from 'react-native-sdkx';
 import SplashCheker from './src/SplashCheker';
 import Pixabay from './src/pixabay';
 //Westmanga
@@ -14,16 +14,16 @@ import Search from './src/search';
 import Details from './src/details';
 import Bookmark from './src/bookmark';
 
+SDK.initialize({
+  appId: '45921653',
+});
+
 Smaato.init('1100044945');
-SKDX.initialize('45921653');
 Smaato.setAge(35);
 Smaato.setCoppa(true);
 Smaato.setLanguage('en');
 Smaato.setSearchQuery('covid19,bitcoin, lamborghini, san-francisco,');
 
-SKDX.MopubAds(false);
-SKDX.setFacebookAds(false);
-SKDX.setDebug(false);
 const lat = [
   {lat: 40.73061, long: -73.935242},
   {lat: 35.652832, long: 139.839478},
@@ -57,7 +57,6 @@ Navigation.events().registerAppLaunchedListener(async () => {
 Navigation.events().registerComponentDidAppearListener(
   ({componentType, passProps, componentName}) => {
     if (componentType === 'Component') {
-      // analytics().setCurrentScreen(componentName, componentType);
       analytics().logScreenView({
         screen_class: componentName,
         screen_name: componentName,

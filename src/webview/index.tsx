@@ -1,81 +1,64 @@
-import React, {useCallback, useEffect, useRef} from 'react';
-import {
-  useWindowDimensions,
-  View,
-  Animated,
-  StyleSheet,
-  Pressable,
-  Text,
-  Alert,
-} from 'react-native';
+import React from 'react';
+import {Animated, StyleSheet, View, Alert} from 'react-native';
 import {WebView} from 'react-native-webview';
-import {useImmer} from 'use-immer';
+import Header from 'component/header/header';
+import Footer from 'component/footer';
 import {_getImageContent} from '../../utils/api';
 import html from './html';
 import Loading from '../ui/Loading';
-import Icon from 'react-native-vector-icons/Ionicons';
 import {Navigation} from 'react-native-navigation';
+import SDK from 'react-native-sdkx';
 import {BannerAd} from 'react-native-smaato-ad';
 import {
   _setHistoryId,
-  _updateHistoryId,
-  _adShow,
-  _adShowChapter,
+  // _updateHistoryId,
+  // _adShow,
+  // _adShowChapter,
 } from '../../utils/database/HistoryId';
-import SKX from 'react-native-sdkx'
 
 interface props {
-  root: string;
   id: string;
-  time: string;
   title: string;
   componentId: string;
+  root: string;
+  time: string;
 }
 
-interface istate {
-  id: string;
-  html?: string;
-  next?: string | null;
-  prev?: string | null;
-}
+const ViewLayout = (props: props) => {
+  const [id, setId] = React.useState<string>(props.id);
+  const [prev, setPrev] = React.useState<string | null>();
+  const [next, setNext] = React.useState<string | null>();
+  const [isHtml, setIsHtml] = React.useState<string>('');
+  const [ads, setAds] = React.useState<boolean>(false);
+  const scrollY = React.useRef<Animated.Value>(new Animated.Value(0)).current;
+  const top = React.useRef<number>(56).current;
+  const layout = React.useRef<number>(0);
 
-const OnView = (props: props) => {
-  const {height} = useWindowDimensions();
-  const webRef = useRef<any>();
-  const topBotAnimated = useRef<Animated.Value>(new Animated.Value(0)).current;
-  const [state, setState] = useImmer<istate>({
-    id: props.id,
-    html: '',
-    prev: '',
-    next: '',
-  });
-
-  const onFetch = useCallback(() => {
-    _getImageContent(state.id)
+  const onCallBack = React.useCallback(() => {
+    _getImageContent(id)
       .then((results) => {
-        setState((draft) => {
-          draft.id = state.id;
-          draft.html = html(results.content);
-          draft.prev = results.prev;
-          draft.next = results.next;
-        });
-        _updateHistoryId(
-          props.root,
-          props.id,
-          'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',', '-'),
-        );
+        setIsHtml(html(results.content));
+        setPrev(results.prev);
+        setNext(results.next);
       })
       .catch(() => {
         Alert.alert('Error', 'Network Failed');
       });
-  }, []);
+  }, [id]);
 
-  const lifeCycle = useCallback(() => {
+  React.useEffect(() => {
     const listener = {
       componentDidAppear: () => {
+        SDK.loadAdIntertitial('float-4898').then((results) => {
+          if (results) {
+            setAds(results);
+          }
+        });
       },
       componentDidDisappear: () => {
-        _adShow();
+        if (ads) {
+          SDK.showIntertitialAd();
+        }
       },
     };
     const unsubscribe = Navigation.events().registerComponentListener(
@@ -85,552 +68,794 @@ const OnView = (props: props) => {
     return () => {
       unsubscribe.remove();
     };
-  }, []);
+  }, [ads, props.componentId]);
 
-  useEffect(onFetch, []);
-  useEffect(lifeCycle, []);
+  React.useEffect(onCallBack, []);
 
-  const onScrollEvent = useCallback(({nativeEvent}) => {
-    const size: any =
-      typeof (nativeEvent.contentSize.height - height) === 'number' &&
-      (nativeEvent.contentSize.height - height).toFixed();
-    const position: any =
-      typeof nativeEvent.contentOffset.y === 'number' &&
-      nativeEvent.contentOffset.y.toFixed();
+  const onLayout = ({
+    nativeEvent: {
+      layout: {height},
+    },
+  }: any) => {
+    layout.current = Math.round(height);
+  };
 
-    if (position > 100) {
-      if (position + 500 > size) {
-        Animated.timing(topBotAnimated, {
-          duration: 1000,
+  const scrollEvent = React.useCallback(
+    ({nativeEvent: {contentOffset, contentSize}}: any) => {
+      const screen: number = layout.current;
+      const SIZE = Math.round(contentOffset.y + screen);
+      if (top > Math.round(contentOffset.y)) {
+        Animated.timing(scrollY, {
           toValue: 0,
           useNativeDriver: true,
+          duration: 500,
+        }).start();
+      } else if (SIZE > Math.round(contentSize.height - top)) {
+        Animated.timing(scrollY, {
+          toValue: 0,
+          useNativeDriver: true,
+          duration: 500,
         }).start();
       } else {
-        Animated.timing(topBotAnimated, {
-          duration: 1000,
+        Animated.timing(scrollY, {
           toValue: 1,
           useNativeDriver: true,
+          duration: 500,
         }).start();
       }
-    } else {
-      Animated.timing(topBotAnimated, {
-        duration: 1000,
-        toValue: 0,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, []);
-  const onMessageEvent = useCallback(({nativeEvent}) => {
-    if (nativeEvent.data) {
-      Animated.timing(topBotAnimated, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, []);
-  const onPrev = useCallback(() => {
-    _adShowChapter();
-    if (state.prev && state.html) {
-      setState((draft) => {
-        draft.html = '';
-      });
-      _getImageContent(state.prev)
-        .then((results) => {
-          setState((draft) => {
-            draft.id = state.prev;
-            draft.html = html(results.content);
-            draft.next = results.next;
-            draft.prev = results.prev;
-          });
-          _setHistoryId(state.prev);
-          _updateHistoryId(
-            props.root,
-            state.prev,
-            'Chapter ' +
-              state.prev.match(/(\d+)/g).toString().replace(',', '-'),
-          );
-        })
-        .catch(() => {
-          Alert.alert('Error', 'Network Failed');
-        });
-    }
-  }, [state]);
-  const onNext = useCallback(() => {
-    _adShowChapter();
-    if (state.next !== null && state.html) {
-      setState((draft) => {
-        draft.html = '';
-      });
-      _getImageContent(state.next)
-        .then((results) => {
-          setState((draft) => {
-            draft.id = state.next;
-            draft.html = html(results.content);
-            draft.next = results.next;
-            draft.prev = results.prev;
-          });
-          _setHistoryId(state.next);
-          _updateHistoryId(
-            props.root,
-            state.next,
-            'Chapter ' +
-              state.next.match(/(\d+)/g).toString().replace(',', '-'),
-          );
-        })
-        .catch(() => {
-          Alert.alert('Error', 'Network Failed');
-        });
-    }
-  }, [state]);
+    },
+    [scrollY, top],
+  );
 
-  const onBack = useCallback(() => {
-    Navigation.pop(props.componentId);
-  }, []);
+  const onPressLeft = React.useCallback(() => {
+    setId(prev);
+    setIsHtml('');
+    _getImageContent(prev)
+      .then((results) => {
+        setIsHtml(html(results.content));
+        setPrev(results.prev);
+        setNext(results.next);
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Network Failed');
+      })
+      .finally(() => {
+        _setHistoryId(prev);
+      });
+  }, [prev]);
+  const onPressRigth = React.useCallback(() => {
+    setId(next);
+    setIsHtml('');
+    _getImageContent(next)
+      .then((results) => {
+        setIsHtml(html(results.content));
+        setPrev(results.prev);
+        setNext(results.next);
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Network Failed');
+      })
+      .finally(() => {
+        _setHistoryId(next);
+      });
+  }, [next]);
+
+  const onMessage = ({nativeEvent: {data}}: any) => {
+    if (data != null) {
+      Animated.timing(scrollY, {
+        toValue: 0,
+        useNativeDriver: true,
+        duration: 500,
+      }).start();
+    }
+  };
 
   return (
-    <React.Fragment>
-      <View style={{height, backgroundColor: 'rgba(255,255,255,.2)'}}>
-        {state.html ? (
-          <WebView
-            ref={webRef}
-            onScroll={onScrollEvent}
-            androidLayerType={'hardware'}
-            contentMode={'recommended'}
-            source={{html: state.html}}
-            bounces={false}
-            automaticallyAdjustContentInsets={false}
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-            onMessage={onMessageEvent}
-          />
-        ) : (
-          <Loading />
-        )}
-      </View>
+    <View style={styles.container}>
+      {isHtml ? (
+        <WebView
+          onMessage={onMessage}
+          onScroll={scrollEvent}
+          source={{
+            html: isHtml,
+          }}
+          onLayout={onLayout}
+        />
+      ) : (
+        <Loading />
+      )}
+      <Header id={id} scrollY={scrollY} componentId={props.componentId} />
+      <Footer
+        left={{
+          id: prev,
+          onPress: onPressLeft,
+        }}
+        right={{
+          id: next,
+          onPress: onPressRigth,
+        }}
+        componentId={props.componentId}
+        scrollY={scrollY}
+      />
       <Animated.View
-        style={[
-          styles.Header,
-          {
-            transform: [
-              {
-                translateY: topBotAnimated.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -50],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          },
-        ]}>
-        <Pressable
-          onPress={onBack}
-          style={(press) => [
-            {borderRadius: 5, paddingHorizontal: 5},
-            press.pressed
-              ? {backgroundColor: 'rgba(255,255,255,.35)'}
-              : {backgroundColor: 'transparent'},
-            styles.btnTopBot,
-          ]}>
-          <Icon name={'ios-arrow-back-sharp'} color={'white'} size={25} />
-          <Text style={{color: 'white', fontSize: 12, fontWeight: '600'}}>
-            {'EPISODE ' + state.id.match(/(\d+)/g).toString().replace(',', '-')}
-          </Text>
-        </Pressable>
-      </Animated.View>
-      <Animated.View
-        style={[
-          styles.Footer,
-          {
-            transform: [
-              {
-                translateY: topBotAnimated.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 50],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          },
-        ]}>
-        <Pressable
-          onPress={onPrev}
-          style={(press) => [
-            {borderRadius: 5, paddingHorizontal: 5},
-            press.pressed
-              ? {backgroundColor: 'rgba(255,255,255,.35)'}
-              : {backgroundColor: 'transparent'},
-            styles.btnTopBot,
-          ]}>
-          <Icon
-            name={'ios-arrow-back-sharp'}
-            color={state.prev ? 'white' : 'rgba(255,255,255,.35)'}
-            size={25}
-          />
-          <Text
-            style={{
-              color: state.prev ? 'white' : 'rgba(255,255,255,.35)',
-              fontSize: 12,
-              fontWeight: '800',
-            }}>
-            PREV
-          </Text>
-        </Pressable>
-        <Pressable
-          style={(press) => [
-            {borderRadius: 10, paddingVertical: 5, paddingHorizontal: 10},
-            press.pressed
-              ? {backgroundColor: 'rgba(255,255,255,.35)'}
-              : {backgroundColor: 'transparent'},
-            styles.btnTopBot,
-          ]}>
-          <Icon name={'chatbox-ellipses-outline'} color={'white'} size={20} />
-        </Pressable>
-        <Pressable
-          onPress={onNext}
-          style={(press) => [
-            {borderRadius: 5, paddingHorizontal: 5},
-            press.pressed
-              ? {backgroundColor: 'rgba(255,255,255,.35)'}
-              : {backgroundColor: 'transparent'},
-            styles.btnTopBot,
-          ]}>
-          <Text
-            style={{
-              color: state.next ? 'white' : 'rgba(255,255,255,.35)',
-              fontSize: 12,
-              fontWeight: '800',
-            }}>
-            NEXT
-          </Text>
-          <Icon
-            name={'ios-arrow-forward-sharp'}
-            color={state.next ? 'white' : 'rgba(255,255,255,.35)'}
-            size={25}
-          />
-        </Pressable>
-      </Animated.View>
-      <Animated.View
-        style={[
-          styles.AdFooter,
-          {
-            transform: [
-              {
-                translateY: topBotAnimated.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 50],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          },
-        ]}>
+        style={{
+          position: 'absolute',
+          bottom: 50,
+          width: '100%',
+          height: 50,
+          transform: [
+            {
+              translateY: scrollY.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 56],
+              }),
+            },
+          ],
+        }}>
         <BannerAd
-          style={[styles.Ad]}
+          style={{
+            height: 50,
+            width: '100%',
+          }}
           adID={'130897362'}
           adsize={'XX_LARGE_320x50'}
           lat={-31.083332}
           long={150.916672}
         />
       </Animated.View>
-    </React.Fragment>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  Header: {
-    position: 'absolute',
-    height: 50,
-    top: 0,
-    width: '100%',
-    backgroundColor: 'black',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  btnTopBot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  Footer: {
-    position: 'absolute',
-    height: 50,
-    bottom: 0,
-    width: '100%',
-    backgroundColor: 'black',
-    justifyContent: 'space-between',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  Ad: {
-    height: 50,
-    width: 320,
-  },
-  AdFooter: {
-    position: 'absolute',
-    height: 50,
-    bottom: 48,
-    width: '100%',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
+  container: {
+    flex: 1,
   },
 });
 
-export default OnView;
+export default ViewLayout;
 
-// import React, {useCallback, useLayoutEffect, useRef} from "react";
+// import React, {useCallback, useEffect, useRef} from 'react';
 // import {
-//     Animated,
-//     NativeScrollEvent,
-//     Pressable,
-//     SafeAreaView,
-//     StyleSheet,
-//     Text,
-//     useWindowDimensions
-// } from "react-native";
-// import {WebView as Web, WebViewMessageEvent} from "react-native-webview";
-// import {useImmer} from "use-immer";
-// import {_getImageContent} from "../../utils/api";
-// import html from "./html";
-// import Icon from 'react-native-vector-icons/Ionicons'
-// import {Navigation} from "react-native-navigation";
-// import { BannerAd as AdLayout } from 'react-native-smaato-ad';
-// import {_setHistoryId, _updateHistoryId} from "../../utils/database/HistoryId";
+//   useWindowDimensions,
+//   View,
+//   Animated,
+//   StyleSheet,
+//   Pressable,
+//   Text,
+//   Alert,
+// } from 'react-native';
+// import {WebView} from 'react-native-webview';
+// import {useImmer} from 'use-immer';
+// import {_getImageContent} from '../../utils/api';
+// import html from './html';
+// import Loading from '../ui/Loading';
+// import Icon from 'react-native-vector-icons/Ionicons';
+// import {Navigation} from 'react-native-navigation';
+// import {BannerAd} from 'react-native-smaato-ad';
+// import {
+//   _setHistoryId,
+//   _updateHistoryId,
+//   _adShow,
+//   _adShowChapter,
+// } from '../../utils/database/HistoryId';
+// import SKX from 'react-native-sdkx';
 //
-// const View = Animated.View;
-// const WebView = Animated.createAnimatedComponent(Web);
-// const BannerAd = Animated.createAnimatedComponent(AdLayout);
-//
-// interface state {
-//     id:string
-//     size:number
-//     html:string
-//     title:string
-//     next?:string | null
-//     prev?:string | null
+// interface props {
+//   root: string;
+//   id: string;
+//   time: string;
+//   title: string;
+//   componentId: string;
 // }
 //
-// interface scrollEvent {
-//     nativeEvent:NativeScrollEvent
+// interface istate {
+//   id: string;
+//   html?: string;
+//   next?: string | null;
+//   prev?: string | null;
 // }
 //
-// const onView = (props:any) => {
+// const OnView = (props: props) => {
+//   const {height} = useWindowDimensions();
+//   const webRef = useRef<any>();
+//   const topBotAnimated = useRef<Animated.Value>(new Animated.Value(0)).current;
+//   const [state, setState] = useImmer<istate>({
+//     id: props.id,
+//     html: '',
+//     prev: '',
+//     next: '',
+//   });
 //
-//     const webviewRef = useRef<any | null>(null);
-//     const { height } = useWindowDimensions();
-//     const value = useRef<Animated.Value>(new Animated.Value(0)).current;
+//   React.useEffect(() => {
+//     console.log('call')
+//     SKX.loadAdIntertitial('float-4898').then((results) => {
+//       if (results) {
+//         SKX.showIntertitialAd()
+//       }
+//     });
+//   }, []);
 //
-//     const [state,setState] = useImmer<state>({
-//         id:'',
-//         size:0,
-//         html:'',
-//         title:'',
-//         next:null,
-//         prev:null
-//     })
+//   const onFetch = useCallback(() => {
+//     _getImageContent(state.id)
+//       .then((results) => {
+//         setState((draft) => {
+//           draft.id = state.id;
+//           draft.html = html(results.content);
+//           draft.prev = results.prev;
+//           draft.next = results.next;
+//         });
+//         _updateHistoryId(
+//           props.root,
+//           props.id,
+//           'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',', '-'),
+//         );
+//       })
+//       .catch(() => {
+//         Alert.alert('Error', 'Network Failed');
+//       });
+//   }, []);
 //
-//     const onLoaded = useCallback(() => {
-//         _getImageContent(props.id).then((result) => {
-//             setState(draft => {
-//                 draft.id = props.id;
-//                 draft.html = html(result.content);
-//                 draft.title = 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-');
-//                 draft.next = result.next;
-//                 draft.prev = result.prev;
-//             });
-//             _updateHistoryId(
-//                 props.root,
-//                 props.id,
-//                 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-'));
-//         }).catch(() => {
+//   const lifeCycle = useCallback(() => {
+//     const listener = {
+//       componentDidAppear: () => {},
+//       componentDidDisappear: () => {
+//         _adShow();
+//       },
+//     };
+//     const unsubscribe = Navigation.events().registerComponentListener(
+//       listener,
+//       props.componentId,
+//     );
+//     return () => {
+//       unsubscribe.remove();
+//     };
+//   }, []);
 //
+//   useEffect(onFetch, []);
+//   useEffect(lifeCycle, []);
+//
+//   const onScrollEvent = useCallback(({nativeEvent}) => {
+//     const size: any =
+//       typeof (nativeEvent.contentSize.height - height) === 'number' &&
+//       (nativeEvent.contentSize.height - height).toFixed();
+//     const position: any =
+//       typeof nativeEvent.contentOffset.y === 'number' &&
+//       nativeEvent.contentOffset.y.toFixed();
+//
+//     if (position > 100) {
+//       if (position + 500 > size) {
+//         Animated.timing(topBotAnimated, {
+//           duration: 1000,
+//           toValue: 0,
+//           useNativeDriver: true,
+//         }).start();
+//       } else {
+//         Animated.timing(topBotAnimated, {
+//           duration: 1000,
+//           toValue: 1,
+//           useNativeDriver: true,
+//         }).start();
+//       }
+//     } else {
+//       Animated.timing(topBotAnimated, {
+//         duration: 1000,
+//         toValue: 0,
+//         useNativeDriver: true,
+//       }).start();
+//     }
+//   }, []);
+//   const onMessageEvent = useCallback(({nativeEvent}) => {
+//     if (nativeEvent.data) {
+//       Animated.timing(topBotAnimated, {
+//         toValue: 0,
+//         duration: 500,
+//         useNativeDriver: true,
+//       }).start();
+//     }
+//   }, []);
+//   const onPrev = useCallback(() => {
+//     _adShowChapter();
+//     if (state.prev && state.html) {
+//       setState((draft) => {
+//         draft.html = '';
+//       });
+//       _getImageContent(state.prev)
+//         .then((results) => {
+//           setState((draft) => {
+//             draft.id = state.prev;
+//             draft.html = html(results.content);
+//             draft.next = results.next;
+//             draft.prev = results.prev;
+//           });
+//           _setHistoryId(state.prev);
+//           _updateHistoryId(
+//             props.root,
+//             state.prev,
+//             'Chapter ' +
+//               state.prev.match(/(\d+)/g).toString().replace(',', '-'),
+//           );
 //         })
-//         return () => {}
-//     },[])
-//
-//     useLayoutEffect(onLoaded,[])
-//
-//
-//     // @ts-ignore
-//     const onScrollEvent = useCallback(({nativeEvent}:scrollEvent) => {
-//         const totalHeight:number = nativeEvent.contentSize.height - height;
-//         const scrollHeight:number = nativeEvent.contentOffset.y;
-//         if (scrollHeight < 100) {
-//             Animated.timing(value, {
-//                 useNativeDriver: true,
-//                 duration: 1000,
-//                 toValue: 0
-//             }).start();
-//         } else if (totalHeight.toFixed() === scrollHeight.toFixed()) {
-//             Animated.timing(value,{
-//                 useNativeDriver:true,
-//                 toValue:0,
-//                 duration:1000
-//             }).start()
-//         } else {
-//             Animated.timing(value,{
-//                 useNativeDriver:true,
-//                 duration:1000,
-//                 toValue:100
-//             }).start();
-//         }
-//     },[])
-//
-//     const webViewMessage = useCallback((event:WebViewMessageEvent) => {
-//         if (event.nativeEvent.data === "up") {
-//             Animated.timing(value,{
-//                 duration:1000,
-//                 toValue:0,
-//                 useNativeDriver:true
-//             }).start();
-//         }
-//     },[])
-//
-//     const transformBottom = [{
-//         translateY:value.interpolate({
-//             inputRange:[0,100],
-//             outputRange:[0,100],
-//             extrapolate:'clamp'
+//         .catch(() => {
+//           Alert.alert('Error', 'Network Failed');
+//         });
+//     }
+//   }, [state]);
+//   const onNext = useCallback(() => {
+//     _adShowChapter();
+//     if (state.next !== null && state.html) {
+//       setState((draft) => {
+//         draft.html = '';
+//       });
+//       _getImageContent(state.next)
+//         .then((results) => {
+//           setState((draft) => {
+//             draft.id = state.next;
+//             draft.html = html(results.content);
+//             draft.next = results.next;
+//             draft.prev = results.prev;
+//           });
+//           _setHistoryId(state.next);
+//           _updateHistoryId(
+//             props.root,
+//             state.next,
+//             'Chapter ' +
+//               state.next.match(/(\d+)/g).toString().replace(',', '-'),
+//           );
 //         })
-//     }]
+//         .catch(() => {
+//           Alert.alert('Error', 'Network Failed');
+//         });
+//     }
+//   }, [state]);
 //
-//     const transformTop = [{
-//         translateY:value.interpolate({
-//             inputRange:[0,100],
-//             outputRange:[0,-100],
-//             extrapolate:'clamp'
-//         })
-//     }]
+//   const onBack = useCallback(() => {
+//     Navigation.pop(props.componentId);
+//   }, []);
 //
-//     const onPressNext = useCallback(() => {
-//         _getImageContent(state.next).then((result) => {
-//             setState(draft => {
-//                 draft.id = state.next;
-//                 draft.html = html(result.content);
-//                 draft.title = 'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-');
-//                 draft.next = result.next;
-//                 draft.prev = result.prev;
-//             })
-//             webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
-//             _setHistoryId(state.next);
-//             _updateHistoryId(
-//                 props.root,
-//                 state.next,
-//                 'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-'));
-//         }).catch((error) => {
-//
-//         })
-//     },[state.next])
-//
-//     const onPressPrev = useCallback(() => {
-//         _getImageContent(state.prev).then((result) => {
-//             setState(draft => {
-//                 draft.id = state.prev;
-//                 draft.html = html(result.content);
-//                 draft.title = 'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-');
-//                 draft.next = result.next;
-//                 draft.prev = result.prev;
-//             })
-//             webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
-//             _setHistoryId(state.prev);
-//             _updateHistoryId(
-//                 props.root,
-//                 state.prev,
-//                 'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-'));
-//
-//         }).catch((error) => {
-//
-//         })
-//     },[state.prev])
-//
-//
-//     return (
-//         <SafeAreaView style={{flex:1}}>
-//         <View style={{ height,width:'100%' }}>
-//             <WebView
-//                 ref={webviewRef}
-//                 source={{html:state.html}}
-//                 automaticallyAdjustContentInsets={false}
-//                 startInLoadingState={true}
-//                 // @ts-ignore
-//                 onScroll={onScrollEvent}
-//                 showsVerticalScrollIndicator={false}
-//                 onMessage={webViewMessage}
-//             />
-//             <View style={[styles.bottom,{transform:transformBottom }]}>
-//                 <Pressable onPress={onPressPrev} disabled={state.prev ? false : true} style={[styles.btn,{ justifyContent:'flex-start' }]}>
-//                     <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
-//                     <Text style={styles.label}>Sebelumnya</Text>
-//                 </Pressable>
-//                 <Pressable style={{flex:1,alignItems:'center',justifyContent:'center'}} >
-//                     <Icon name={'chatbox-ellipses-outline'} color={'white'} size={25} />
-//                 </Pressable>
-//                 <Pressable onPress={onPressNext} disabled={state.next ? false : true} style={[styles.btn,{ justifyContent:'flex-end' }]}>
-//                     <Text style={styles.label}>Selanjutnya</Text>
-//                     <Icon name={'ios-arrow-forward-sharp'} color={'white'} size={20} />
-//                 </Pressable>
-//             </View>
-//             <View style={[styles.ad,{
-//                 transform:[{translateY:value.interpolate({inputRange:[0,100], outputRange:[0,45], extrapolate:'clamp'})}]
-//             }]}>
-//                 <BannerAd style={{ height:50,width:320 }}
-//                           adID={'130897362'}
-//                           bannerAdSize={'XX_LARGE_320x50'}
-//                           adReload={'VERY_SHORT'}/>
-//             </View>
-//             <View style={[styles.top,{transform:transformTop}]}>
-//                 <Pressable style={{ flex:1,flexDirection:'row',alignItems:'center' }} onPress={() => Navigation.pop(props.componentId)}>
-//                     <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
-//                     <Text numberOfLines={1} style={{color:'white',marginHorizontal:8}}>{state.title}</Text>
-//                 </Pressable>
-//             </View>
-//         </View>
-//         </SafeAreaView>
-//     )
-// }
+//   return (
+//     <React.Fragment>
+//       <View style={{height, backgroundColor: 'rgba(255,255,255,.2)'}}>
+//         {state.html ? (
+//           <WebView
+//             ref={webRef}
+//             onScroll={onScrollEvent}
+//             androidLayerType={'hardware'}
+//             contentMode={'recommended'}
+//             source={{html: state.html}}
+//             bounces={false}
+//             automaticallyAdjustContentInsets={false}
+//             showsVerticalScrollIndicator={false}
+//             showsHorizontalScrollIndicator={false}
+//             onMessage={onMessageEvent}
+//           />
+//         ) : (
+//           <Loading />
+//         )}
+//       </View>
+//       <Animated.View
+//         style={[
+//           styles.Header,
+//           {
+//             transform: [
+//               {
+//                 translateY: topBotAnimated.interpolate({
+//                   inputRange: [0, 1],
+//                   outputRange: [0, -50],
+//                   extrapolate: 'clamp',
+//                 }),
+//               },
+//             ],
+//           },
+//         ]}>
+//         <Pressable
+//           onPress={onBack}
+//           style={(press) => [
+//             {borderRadius: 5, paddingHorizontal: 5},
+//             press.pressed
+//               ? {backgroundColor: 'rgba(255,255,255,.35)'}
+//               : {backgroundColor: 'transparent'},
+//             styles.btnTopBot,
+//           ]}>
+//           <Icon name={'ios-arrow-back-sharp'} color={'white'} size={25} />
+//           <Text style={{color: 'white', fontSize: 12, fontWeight: '600'}}>
+//             {'EPISODE ' + state.id.match(/(\d+)/g).toString().replace(',', '-')}
+//           </Text>
+//         </Pressable>
+//       </Animated.View>
+//       <Animated.View
+//         style={[
+//           styles.Footer,
+//           {
+//             transform: [
+//               {
+//                 translateY: topBotAnimated.interpolate({
+//                   inputRange: [0, 1],
+//                   outputRange: [0, 50],
+//                   extrapolate: 'clamp',
+//                 }),
+//               },
+//             ],
+//           },
+//         ]}>
+//         <Pressable
+//           onPress={onPrev}
+//           style={(press) => [
+//             {borderRadius: 5, paddingHorizontal: 5},
+//             press.pressed
+//               ? {backgroundColor: 'rgba(255,255,255,.35)'}
+//               : {backgroundColor: 'transparent'},
+//             styles.btnTopBot,
+//           ]}>
+//           <Icon
+//             name={'ios-arrow-back-sharp'}
+//             color={state.prev ? 'white' : 'rgba(255,255,255,.35)'}
+//             size={25}
+//           />
+//           <Text
+//             style={{
+//               color: state.prev ? 'white' : 'rgba(255,255,255,.35)',
+//               fontSize: 12,
+//               fontWeight: '800',
+//             }}>
+//             PREV
+//           </Text>
+//         </Pressable>
+//         <Pressable
+//           style={(press) => [
+//             {borderRadius: 10, paddingVertical: 5, paddingHorizontal: 10},
+//             press.pressed
+//               ? {backgroundColor: 'rgba(255,255,255,.35)'}
+//               : {backgroundColor: 'transparent'},
+//             styles.btnTopBot,
+//           ]}>
+//           <Icon name={'chatbox-ellipses-outline'} color={'white'} size={20} />
+//         </Pressable>
+//         <Pressable
+//           onPress={onNext}
+//           style={(press) => [
+//             {borderRadius: 5, paddingHorizontal: 5},
+//             press.pressed
+//               ? {backgroundColor: 'rgba(255,255,255,.35)'}
+//               : {backgroundColor: 'transparent'},
+//             styles.btnTopBot,
+//           ]}>
+//           <Text
+//             style={{
+//               color: state.next ? 'white' : 'rgba(255,255,255,.35)',
+//               fontSize: 12,
+//               fontWeight: '800',
+//             }}>
+//             NEXT
+//           </Text>
+//           <Icon
+//             name={'ios-arrow-forward-sharp'}
+//             color={state.next ? 'white' : 'rgba(255,255,255,.35)'}
+//             size={25}
+//           />
+//         </Pressable>
+//       </Animated.View>
+//       <Animated.View
+//         style={[
+//           styles.AdFooter,
+//           {
+//             transform: [
+//               {
+//                 translateY: topBotAnimated.interpolate({
+//                   inputRange: [0, 1],
+//                   outputRange: [0, 50],
+//                   extrapolate: 'clamp',
+//                 }),
+//               },
+//             ],
+//           },
+//         ]}>
+//         <BannerAd
+//           style={[styles.Ad]}
+//           adID={'130897362'}
+//           adsize={'XX_LARGE_320x50'}
+//           lat={-31.083332}
+//           long={150.916672}
+//         />
+//       </Animated.View>
+//     </React.Fragment>
+//   );
+// };
 //
 // const styles = StyleSheet.create({
-//     top:{
-//         position:'absolute',
-//         top:0,
-//         width:'100%',
-//         height:50,
-//         backgroundColor:'black',
-//         flexDirection:'row',
-//         justifyContent:'space-between',
-//         alignItems:'center',
-//         paddingHorizontal:8
-//     },
-//     bottom:{
-//         position:'absolute',
-//         bottom:45 / 2,
-//         width:'100%',
-//         height:45,
-//         backgroundColor:'black',
-//         flexDirection:'row',
-//         justifyContent:'space-between',
-//         alignItems:'center',
-//         paddingHorizontal:5,
-//     },
-//     btn:{
-//         flex:1,
-//         flexDirection:'row',
-//         alignItems:'center'
-//     },
-//     label:{
-//         fontSize:10,
-//         color:'white',
-//         textTransform:'uppercase'
-//     },
-//     ad:{
-//         position:'absolute',
-//         bottom:45 + (45 / 2) - 2,
-//         height:50,
-//         width:'100%',
-//         backgroundColor:'transparent'
-//     }
-// })
+//   Header: {
+//     position: 'absolute',
+//     height: 50,
+//     top: 0,
+//     width: '100%',
+//     backgroundColor: 'black',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     paddingHorizontal: 10,
+//   },
+//   btnTopBot: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   Footer: {
+//     position: 'absolute',
+//     height: 50,
+//     bottom: 0,
+//     width: '100%',
+//     backgroundColor: 'black',
+//     justifyContent: 'space-between',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     paddingHorizontal: 10,
+//   },
+//   Ad: {
+//     height: 50,
+//     width: 320,
+//   },
+//   AdFooter: {
+//     position: 'absolute',
+//     height: 50,
+//     bottom: 48,
+//     width: '100%',
+//     justifyContent: 'center',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+// });
 //
-// export default onView;
+// export default OnView;
+//
+// // import React, {useCallback, useLayoutEffect, useRef} from "react";
+// // import {
+// //     Animated,
+// //     NativeScrollEvent,
+// //     Pressable,
+// //     SafeAreaView,
+// //     StyleSheet,
+// //     Text,
+// //     useWindowDimensions
+// // } from "react-native";
+// // import {WebView as Web, WebViewMessageEvent} from "react-native-webview";
+// // import {useImmer} from "use-immer";
+// // import {_getImageContent} from "../../utils/api";
+// // import html from "./html";
+// // import Icon from 'react-native-vector-icons/Ionicons'
+// // import {Navigation} from "react-native-navigation";
+// // import { BannerAd as AdLayout } from 'react-native-smaato-ad';
+// // import {_setHistoryId, _updateHistoryId} from "../../utils/database/HistoryId";
+// //
+// // const View = Animated.View;
+// // const WebView = Animated.createAnimatedComponent(Web);
+// // const BannerAd = Animated.createAnimatedComponent(AdLayout);
+// //
+// // interface state {
+// //     id:string
+// //     size:number
+// //     html:string
+// //     title:string
+// //     next?:string | null
+// //     prev?:string | null
+// // }
+// //
+// // interface scrollEvent {
+// //     nativeEvent:NativeScrollEvent
+// // }
+// //
+// // const onView = (props:any) => {
+// //
+// //     const webviewRef = useRef<any | null>(null);
+// //     const { height } = useWindowDimensions();
+// //     const value = useRef<Animated.Value>(new Animated.Value(0)).current;
+// //
+// //     const [state,setState] = useImmer<state>({
+// //         id:'',
+// //         size:0,
+// //         html:'',
+// //         title:'',
+// //         next:null,
+// //         prev:null
+// //     })
+// //
+// //     const onLoaded = useCallback(() => {
+// //         _getImageContent(props.id).then((result) => {
+// //             setState(draft => {
+// //                 draft.id = props.id;
+// //                 draft.html = html(result.content);
+// //                 draft.title = 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-');
+// //                 draft.next = result.next;
+// //                 draft.prev = result.prev;
+// //             });
+// //             _updateHistoryId(
+// //                 props.root,
+// //                 props.id,
+// //                 'Chapter ' + props.id.match(/(\d+)/g).toString().replace(',','-'));
+// //         }).catch(() => {
+// //
+// //         })
+// //         return () => {}
+// //     },[])
+// //
+// //     useLayoutEffect(onLoaded,[])
+// //
+// //
+// //     // @ts-ignore
+// //     const onScrollEvent = useCallback(({nativeEvent}:scrollEvent) => {
+// //         const totalHeight:number = nativeEvent.contentSize.height - height;
+// //         const scrollHeight:number = nativeEvent.contentOffset.y;
+// //         if (scrollHeight < 100) {
+// //             Animated.timing(value, {
+// //                 useNativeDriver: true,
+// //                 duration: 1000,
+// //                 toValue: 0
+// //             }).start();
+// //         } else if (totalHeight.toFixed() === scrollHeight.toFixed()) {
+// //             Animated.timing(value,{
+// //                 useNativeDriver:true,
+// //                 toValue:0,
+// //                 duration:1000
+// //             }).start()
+// //         } else {
+// //             Animated.timing(value,{
+// //                 useNativeDriver:true,
+// //                 duration:1000,
+// //                 toValue:100
+// //             }).start();
+// //         }
+// //     },[])
+// //
+// //     const webViewMessage = useCallback((event:WebViewMessageEvent) => {
+// //         if (event.nativeEvent.data === "up") {
+// //             Animated.timing(value,{
+// //                 duration:1000,
+// //                 toValue:0,
+// //                 useNativeDriver:true
+// //             }).start();
+// //         }
+// //     },[])
+// //
+// //     const transformBottom = [{
+// //         translateY:value.interpolate({
+// //             inputRange:[0,100],
+// //             outputRange:[0,100],
+// //             extrapolate:'clamp'
+// //         })
+// //     }]
+// //
+// //     const transformTop = [{
+// //         translateY:value.interpolate({
+// //             inputRange:[0,100],
+// //             outputRange:[0,-100],
+// //             extrapolate:'clamp'
+// //         })
+// //     }]
+// //
+// //     const onPressNext = useCallback(() => {
+// //         _getImageContent(state.next).then((result) => {
+// //             setState(draft => {
+// //                 draft.id = state.next;
+// //                 draft.html = html(result.content);
+// //                 draft.title = 'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-');
+// //                 draft.next = result.next;
+// //                 draft.prev = result.prev;
+// //             })
+// //             webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
+// //             _setHistoryId(state.next);
+// //             _updateHistoryId(
+// //                 props.root,
+// //                 state.next,
+// //                 'Chapter ' + state.next.match(/(\d+)/g).toString().replace(',','-'));
+// //         }).catch((error) => {
+// //
+// //         })
+// //     },[state.next])
+// //
+// //     const onPressPrev = useCallback(() => {
+// //         _getImageContent(state.prev).then((result) => {
+// //             setState(draft => {
+// //                 draft.id = state.prev;
+// //                 draft.html = html(result.content);
+// //                 draft.title = 'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-');
+// //                 draft.next = result.next;
+// //                 draft.prev = result.prev;
+// //             })
+// //             webviewRef.current.injectJavaScript('document.documentElement.scrollTop = 0');
+// //             _setHistoryId(state.prev);
+// //             _updateHistoryId(
+// //                 props.root,
+// //                 state.prev,
+// //                 'Chapter ' + state.prev.match(/(\d+)/g).toString().replace(',','-'));
+// //
+// //         }).catch((error) => {
+// //
+// //         })
+// //     },[state.prev])
+// //
+// //
+// //     return (
+// //         <SafeAreaView style={{flex:1}}>
+// //         <View style={{ height,width:'100%' }}>
+// //             <WebView
+// //                 ref={webviewRef}
+// //                 source={{html:state.html}}
+// //                 automaticallyAdjustContentInsets={false}
+// //                 startInLoadingState={true}
+// //                 // @ts-ignore
+// //                 onScroll={onScrollEvent}
+// //                 showsVerticalScrollIndicator={false}
+// //                 onMessage={webViewMessage}
+// //             />
+// //             <View style={[styles.bottom,{transform:transformBottom }]}>
+// //                 <Pressable onPress={onPressPrev} disabled={state.prev ? false : true} style={[styles.btn,{ justifyContent:'flex-start' }]}>
+// //                     <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
+// //                     <Text style={styles.label}>Sebelumnya</Text>
+// //                 </Pressable>
+// //                 <Pressable style={{flex:1,alignItems:'center',justifyContent:'center'}} >
+// //                     <Icon name={'chatbox-ellipses-outline'} color={'white'} size={25} />
+// //                 </Pressable>
+// //                 <Pressable onPress={onPressNext} disabled={state.next ? false : true} style={[styles.btn,{ justifyContent:'flex-end' }]}>
+// //                     <Text style={styles.label}>Selanjutnya</Text>
+// //                     <Icon name={'ios-arrow-forward-sharp'} color={'white'} size={20} />
+// //                 </Pressable>
+// //             </View>
+// //             <View style={[styles.ad,{
+// //                 transform:[{translateY:value.interpolate({inputRange:[0,100], outputRange:[0,45], extrapolate:'clamp'})}]
+// //             }]}>
+// //                 <BannerAd style={{ height:50,width:320 }}
+// //                           adID={'130897362'}
+// //                           bannerAdSize={'XX_LARGE_320x50'}
+// //                           adReload={'VERY_SHORT'}/>
+// //             </View>
+// //             <View style={[styles.top,{transform:transformTop}]}>
+// //                 <Pressable style={{ flex:1,flexDirection:'row',alignItems:'center' }} onPress={() => Navigation.pop(props.componentId)}>
+// //                     <Icon name={'ios-arrow-back-sharp'} color={'white'} size={20} />
+// //                     <Text numberOfLines={1} style={{color:'white',marginHorizontal:8}}>{state.title}</Text>
+// //                 </Pressable>
+// //             </View>
+// //         </View>
+// //         </SafeAreaView>
+// //     )
+// // }
+// //
+// // const styles = StyleSheet.create({
+// //     top:{
+// //         position:'absolute',
+// //         top:0,
+// //         width:'100%',
+// //         height:50,
+// //         backgroundColor:'black',
+// //         flexDirection:'row',
+// //         justifyContent:'space-between',
+// //         alignItems:'center',
+// //         paddingHorizontal:8
+// //     },
+// //     bottom:{
+// //         position:'absolute',
+// //         bottom:45 / 2,
+// //         width:'100%',
+// //         height:45,
+// //         backgroundColor:'black',
+// //         flexDirection:'row',
+// //         justifyContent:'space-between',
+// //         alignItems:'center',
+// //         paddingHorizontal:5,
+// //     },
+// //     btn:{
+// //         flex:1,
+// //         flexDirection:'row',
+// //         alignItems:'center'
+// //     },
+// //     label:{
+// //         fontSize:10,
+// //         color:'white',
+// //         textTransform:'uppercase'
+// //     },
+// //     ad:{
+// //         position:'absolute',
+// //         bottom:45 + (45 / 2) - 2,
+// //         height:50,
+// //         width:'100%',
+// //         backgroundColor:'transparent'
+// //     }
+// // })
+// //
+// // export default onView;
