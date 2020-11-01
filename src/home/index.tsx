@@ -6,7 +6,8 @@ import {_getHome} from '../../utils/api';
 import Card from '../ui/Card';
 import Error from '../ui/Error';
 import {Navigation} from 'react-native-navigation';
-import BannerAd from '../BannerAd';
+// import BannerAd from '../BannerAd';
+import {BannerAd} from '../Admob';
 
 const View = Animated.View;
 const FlatList = Animated.FlatList;
@@ -86,14 +87,17 @@ const Home = (props: props) => {
     return () => {
       unsubscribe.remove();
     };
-  }, []);
+  }, [props.componentId]);
 
   useEffect(onCallBack, []);
   useEffect(onCallNav, []);
 
-  const renderContent = useCallback(({item}) => {
-    return <Card {...item} componentId={props.componentId} />;
-  }, []);
+  const renderContent = useCallback(
+    ({item}) => {
+      return <Card {...item} componentId={props.componentId} />;
+    },
+    [props.componentId],
+  );
 
   const renderKey = (item) => {
     return `west-${item.id}`;
@@ -125,7 +129,8 @@ const Home = (props: props) => {
         keyExtractor={renderKey}
         ListEmptyComponent={<Loading />}
       />
-      <BannerAd adUnit={'float-4901'} />
+      <BannerAd />
+      {/*<BannerAd adUnit={'float-4901'} />*/}
       {/*<View*/}
       {/*  style={{*/}
       {/*    position: 'absolute',*/}

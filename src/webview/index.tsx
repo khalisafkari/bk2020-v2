@@ -7,7 +7,6 @@ import {_getImageContent} from '../../utils/api';
 import html from './html';
 import Loading from '../ui/Loading';
 import {Navigation} from 'react-native-navigation';
-import SDK from 'react-native-sdkx';
 import {BannerAd} from 'react-native-smaato-ad';
 import {
   _setHistoryId,
@@ -15,6 +14,19 @@ import {
   // _adShow,
   // _adShowChapter,
 } from '../../utils/database/HistoryId';
+import {
+  InterstitialAd,
+  TestIds,
+  AdEventType,
+} from '@react-native-firebase/admob';
+const adUnitId = __DEV__
+  ? TestIds.INTERSTITIAL
+  : 'ca-app-pub-8637010206853096/5006259063';
+
+const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+  location: [-33.865143, 151.2099],
+  requestNonPersonalizedAdsOnly: true,
+});
 
 interface props {
   id: string;
@@ -47,17 +59,28 @@ const ViewLayout = (props: props) => {
   }, [id]);
 
   React.useEffect(() => {
+    const eventListener = interstitial.onAdEvent((type) => {
+      if (type === AdEventType.LOADED) {
+        setAds(true);
+      }
+      if (type === AdEventType.ERROR) {
+        interstitial.load();
+      }
+    });
+
+    interstitial.load();
+
+    return () => {
+      eventListener();
+    };
+  }, []);
+
+  React.useEffect(() => {
     const listener = {
-      componentDidAppear: () => {
-        SDK.loadAdIntertitial('float-4898').then((results) => {
-          if (results) {
-            setAds(results);
-          }
-        });
-      },
+      componentDidAppear: () => {},
       componentDidDisappear: () => {
         if (ads) {
-          SDK.showIntertitialAd();
+          interstitial.show();
         }
       },
     };
