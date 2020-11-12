@@ -31,7 +31,7 @@ const Genre = (props: props) => {
         });
       }
     },
-    [select],
+    [props, select],
   );
 
   const renderItem = React.useCallback(

@@ -100,7 +100,7 @@ const List = (props: any) => {
     return () => {
       subscriber.remove();
     };
-  }, [onFetch, props.componentId]);
+  }, [onFetch, onShowMenu, props.componentId]);
 
   React.useEffect(onCallBack, []);
 
