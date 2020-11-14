@@ -26,7 +26,7 @@
     "react-native-version-check": "^3.4.2",
     "react-native-webview": "^10.10.0",
     "use-immer": "^0.4.1",
-    "westmanga-extensions": "^0.1.13"
+    "westmanga-extensions": "^0.1.15"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text, View, Animated, Linking, Pressable} from 'react-native';
+import {Text, View, Animated, Linking, Pressable, Alert} from 'react-native';
 import location from 'westmanga-extensions';
 import FastImage from 'react-native-fast-image';
 import VersionCheck from 'react-native-version-check';
@@ -25,13 +25,17 @@ const Splash = () => {
   }, [logo]);
 
   const onFetchCountry = React.useCallback(() => {
-    location().then(({country}) => {
-      if (country === 'Indonesia') {
-        setRoot();
-      } else {
-        setPixabay();
-      }
-    });
+    location()
+      .then(({country}) => {
+        if (country === 'Indonesia') {
+          setRoot();
+        } else {
+          setPixabay();
+        }
+      })
+      .catch(() => {
+        Alert.alert('connection', 'error');
+      });
   }, []);
 
   const onCallBack = React.useCallback(() => {
