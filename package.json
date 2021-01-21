@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@monedata/react-native-sdk": "^1.0.0",
-    "immer": "^7.0.14",
+    "immer": "^8.0.1",
     "moment": "^2.29.1",
     "numeral": "^2.0.6",
     "react": "16.13.1",
